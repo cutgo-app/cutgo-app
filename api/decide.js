@@ -11,10 +11,17 @@ export default async function handler(req, res) {
       body: JSON.stringify({ model: "claude-3-5-sonnet-20241022", max_tokens: 1000, system: systemPrompt, messages: [{ role: "user", content: userMsg }] })
     });
     const data = await response.json();
+    if (!response.ok) {
+      return res.status(500).json({ error: "Anthropic error", details: data });
+    }
+    if (!data.content || !data.content[0]) {
+      return res.status(500).json({ error: "No content", details: data });
+    }
     const text = data.content.map(i => i.text || "").join("");
-    const parsed = JSON.parse(text.replace(/```json|```/g, "").trim());
+    const clean = text.replace(/```json|```/g, "").trim();
+    const parsed = JSON.parse(clean);
     return res.status(200).json(parsed);
   } catch(e) {
-    return res.status(500).json({ error: "Analysis failed" });
+    return res.status(500).json({ error: "Analysis failed", message: e.message });
   }
 }
