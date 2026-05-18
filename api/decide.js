@@ -8,7 +8,7 @@ export default async function handler(req, res) {
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
-      body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 1000, system: systemPrompt, messages: [{ role: "user", content: userMsg }] })
+      body: JSON.stringify({ model: "claude-3-5-sonnet-20241022", max_tokens: 1000, system: systemPrompt, messages: [{ role: "user", content: userMsg }] })
     });
     const data = await response.json();
     const text = data.content.map(i => i.text || "").join("");
