@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 
 // ─── CONFIG ───────────────────────────────────────────────
-const GUMROAD_URL = "https://gumroad.com/l/VOTRE-LIEN-ICI"; // ← remplace par ton lien Gumroad
+const GUMROAD_URL = "https://cutgo.lemonsqueezy.com/checkout/buy/cc483058-e0d6-4f7c-af02-a8f0adf688bb"; // ← remplace par ton lien Gumroad
 const FREE_DECISIONS = 3;
 const VALID_CODE_PREFIX = "CUTGO-"; // codes valides : CUTGO-XXXX
 
