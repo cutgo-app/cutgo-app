@@ -114,13 +114,32 @@ const saveToHistory = (entry) => {
 };
 
 // ─── SHARE ────────────────────────────────────────────────────
-const encodeShare = (data) => { try { return btoa(unescape(encodeURIComponent(JSON.stringify(data)))); } catch(e) { return null; } };
-const decodeShare = (enc) => { try { return JSON.parse(decodeURIComponent(escape(atob(enc)))); } catch(e) { return null; } };
+// URL courte et encodage robuste
+const encodeShare = (data) => {
+  try {
+    const json = JSON.stringify(data);
+    const enc = encodeURIComponent(json);
+    return btoa(enc).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+  } catch(e) { return null; }
+};
+const decodeShare = (enc) => {
+  try {
+    const b64 = enc.replace(/-/g,"+").replace(/_/g,"/");
+    const padded = b64 + "===".slice(0,(4-b64.length%4)%4);
+    return JSON.parse(decodeURIComponent(atob(padded)));
+  } catch(e) { return null; }
+};
+// N'encode que l'essentiel pour un lien court
 const getShareURL = (mod, result) => {
-  const data = { modLabel:mod.label, modColor:mod.color, modIcon:mod.icon, result, date:new Date().toLocaleDateString("fr-FR") };
+  const data = {
+    ml: mod.label, mc: mod.color, mi: mod.icon,
+    v: result.verdict, s: result.signal,
+    a: result.action, p: result.pourquoi?.[0] || "",
+    d: new Date().toLocaleDateString("fr-FR")
+  };
   const enc = encodeShare(data);
   if (!enc) return null;
-  return `${window.location.href.split("#")[0]}#s/${enc}`;
+  return window.location.href.split("#")[0] + "#s/" + enc;
 };
 
 // ─── STYLES ───────────────────────────────────────────────────
@@ -150,12 +169,21 @@ export default function App() {
   const [formatLoading, setFormatLoading] = useState(false);
   const [sharedData, setSharedData] = useState(null);
 
-  // Detect share URL on load
+  // Detect share URL on load — map compact keys to full format
   useEffect(() => {
     const hash = window.location.hash;
     if (hash.startsWith("#s/")) {
-      const data = decodeShare(hash.slice(3));
-      if (data) { setSharedData(data); setPage("shared"); }
+      const compact = decodeShare(hash.slice(3));
+      if (compact) {
+        // Support both old full format and new compact format
+        const data = compact.ml ? {
+          modLabel: compact.ml, modColor: compact.mc, modIcon: compact.mi,
+          date: compact.d,
+          result: { verdict:compact.v, signal:compact.s, action:compact.a, pourquoi:[compact.p] }
+        } : compact;
+        setSharedData(data);
+        setPage("shared");
+      }
     }
   }, []);
 
