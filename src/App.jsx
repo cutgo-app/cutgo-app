@@ -1,703 +1,673 @@
 import { useState, useEffect } from "react";
 
+// ─── CONFIG ───────────────────────────────────────────────────
 const GUMROAD_URL = "https://cutgo.gumroad.com/l/djcbif";
 const FREE_DECISIONS = 3;
 const VALID_CODE_PREFIX = "CUTGO-";
+const SITE_URL = "www.cutgo.org";
+
+// ─── DESIGN TOKENS ────────────────────────────────────────────
+const SANS = "'Inter','Helvetica Neue','Arial',sans-serif";
+const MONO = "'Courier New',monospace";
+const BG    = "#0A0A0C";
+const CARD  = "#141416";
+const CARD2 = "#1C1C1E";
+const BORDER = "rgba(255,255,255,0.07)";
+const MUTED  = "rgba(255,255,255,0.35)";
+const TEXT   = "#F0F0F6";
 
 // ─── MODULES ──────────────────────────────────────────────────
 const BASE_MODULES = [
-  { id:"LOVE", label:"LOVE", icon:"♥", color:"#FF2D55", desc:"Relations & émotions", systemPrompt:`Tu es CUT/GO™ LOVE. Décision froide sur les relations. Analyse : respect, toxicité, dépendance, cohérence actes/paroles. Si urgence élevée : verdict sur respect + toxicité uniquement. Réponds UNIQUEMENT en JSON valide : {"verdict":"RESTE"|"QUITTE"|"PRENDS DU RECUL","pourquoi":["r1","r2"],"action":"string","risque":"string","consequence":"string","signal":"SAIN"|"INSTABLE"|"TOXIQUE"}` },
-  { id:"MONEY", label:"MONEY", icon:"◈", color:"#FFD60A", desc:"Décisions financières", systemPrompt:`Tu es CUT/GO™ MONEY. Décision froide sur l'argent. Analyse : gain potentiel, perte possible, coût de l'inaction, retour rapide. Réponds UNIQUEMENT en JSON valide : {"verdict":"INVESTIS"|"REFUSE"|"ATTENDS","pourquoi":["r1","r2"],"action":"string","risque":"string","consequence":"string","signal":"RENTABLE"|"RISQUÉ"|"MAUVAIS"}` },
-  { id:"BUSINESS", label:"BUSINESS", icon:"⬡", color:"#0A84FF", desc:"Décisions entrepreneuriales", systemPrompt:`Tu es CUT/GO™ BUSINESS. Décision froide sur le business. Analyse : potentiel de gain, vitesse d'exécution, coût/bénéfice, perte si inaction. Réponds UNIQUEMENT en JSON valide : {"verdict":"LANCE"|"STOP"|"TEST","pourquoi":["r1","r2"],"action":"string","risque":"string","consequence":"string","signal":"SCALABLE"|"FAIBLE"|"À TESTER"}` },
-  { id:"CREATOR", label:"CREATOR", icon:"▲", color:"#30D158", desc:"Création de contenu", systemPrompt:`Tu es CUT/GO™ CREATOR. Décision froide sur la création. Analyse : potentiel d'attention, clarté, différenciation, impact émotionnel. Réponds UNIQUEMENT en JSON valide : {"verdict":"PUBLIE"|"STOP"|"OPTIMISE","pourquoi":["r1","r2"],"action":"string","risque":"string","consequence":"string","signal":"VIRAL"|"MOYEN"|"INVISIBLE"}` },
-  { id:"CAREER", label:"CAREER", icon:"◆", color:"#BF5AF2", desc:"Décisions professionnelles", systemPrompt:`Tu es CUT/GO™ CAREER. Décision froide sur la carrière. Analyse : évolution, compétences, sécurité, opportunité externe, alignement objectif. Réponds UNIQUEMENT en JSON valide : {"verdict":"ACCEPTE"|"REFUSE"|"PRÉPARE","pourquoi":["r1","r2"],"action":"string","risque":"string","consequence":"string","signal":"ÉVOLUTIF"|"STABLE"|"BLOQUÉ"}` },
+  { id:"LOVE",     label:"LOVE",     icon:"♡", color:"#FF2D55", desc:"Relations & émotions",       systemPrompt:`Tu es CUT/GO™ LOVE. Décision froide sur les relations. Analyse : respect, toxicité, dépendance, cohérence actes/paroles. Réponds UNIQUEMENT en JSON valide : {"verdict":"RESTE"|"QUITTE"|"PRENDS DU RECUL","pourquoi":["r1","r2"],"action":"string","risque":"string","consequence":"string","signal":"SAIN"|"INSTABLE"|"TOXIQUE"}` },
+  { id:"MONEY",    label:"MONEY",    icon:"◈", color:"#FFD60A", desc:"Décisions financières",       systemPrompt:`Tu es CUT/GO™ MONEY. Décision froide sur l'argent. Analyse : gain potentiel, perte possible, coût de l'inaction. Réponds UNIQUEMENT en JSON valide : {"verdict":"INVESTIS"|"REFUSE"|"ATTENDS","pourquoi":["r1","r2"],"action":"string","risque":"string","consequence":"string","signal":"RENTABLE"|"RISQUÉ"|"MAUVAIS"}` },
+  { id:"BUSINESS", label:"BUSINESS", icon:"⬡", color:"#0A84FF", desc:"Décisions entrepreneuriales", systemPrompt:`Tu es CUT/GO™ BUSINESS. Décision froide sur le business. Analyse : potentiel, vitesse, coût/bénéfice. Réponds UNIQUEMENT en JSON valide : {"verdict":"LANCE"|"STOP"|"TEST","pourquoi":["r1","r2"],"action":"string","risque":"string","consequence":"string","signal":"SCALABLE"|"FAIBLE"|"À TESTER"}` },
+  { id:"CREATOR",  label:"CREATOR",  icon:"▲", color:"#30D158", desc:"Création de contenu",         systemPrompt:`Tu es CUT/GO™ CREATOR. Décision froide sur la création. Analyse : attention, clarté, différenciation. Réponds UNIQUEMENT en JSON valide : {"verdict":"PUBLIE"|"STOP"|"OPTIMISE","pourquoi":["r1","r2"],"action":"string","risque":"string","consequence":"string","signal":"VIRAL"|"MOYEN"|"INVISIBLE"}` },
+  { id:"CAREER",   label:"CAREER",   icon:"◆", color:"#BF5AF2", desc:"Décisions professionnelles",  systemPrompt:`Tu es CUT/GO™ CAREER. Décision froide sur la carrière. Analyse : évolution, sécurité, opportunité. Réponds UNIQUEMENT en JSON valide : {"verdict":"ACCEPTE"|"REFUSE"|"PRÉPARE","pourquoi":["r1","r2"],"action":"string","risque":"string","consequence":"string","signal":"ÉVOLUTIF"|"STABLE"|"BLOQUÉ"}` },
 ];
 
 const EXCLUSIVE_MODES = [
-  { id:"URGENCE", label:"MODE URGENCE", icon:"⚡", color:"#FF2D55", desc:"Verdict en 10 secondes", systemPrompt:`Tu es CUT/GO™ MODE URGENCE. Décision ultra-rapide, pas de nuance. Réponds UNIQUEMENT en JSON valide : {"verdict":"GO"|"STOP","pourquoi":["r1"],"action":"string","risque":"string","consequence":"string","signal":"CRITIQUE"|"URGENT"|"STABLE"}` },
-  { id:"HIGH_RISK", label:"MODE HIGH RISK", icon:"☠", color:"#FF6B35", desc:"Analyse des risques extrêmes", systemPrompt:`Tu es CUT/GO™ MODE HIGH RISK. Focus sur le pire scénario. Réponds UNIQUEMENT en JSON valide : {"verdict":"DANGER"|"RISQUE MODÉRÉ"|"ACCEPTABLE","pourquoi":["r1","r2"],"action":"string","risque":"string","consequence":"string","signal":"DANGER"|"ATTENTION"|"OK"}` },
-  { id:"MANIPULATION", label:"MODE MANIPULATION", icon:"◉", color:"#BF5AF2", desc:"Détecte si on te manipule", systemPrompt:`Tu es CUT/GO™ MODE MANIPULATION. Détecte gaslighting, love bombing, isolement, manipulation émotionnelle. Réponds UNIQUEMENT en JSON valide : {"verdict":"MANIPULATION DÉTECTÉE"|"SUSPECT"|"SAIN","pourquoi":["r1","r2"],"action":"string","risque":"string","consequence":"string","signal":"DANGER"|"SUSPECT"|"SAIN"}` },
+  { id:"URGENCE",     label:"MODE URGENCE",     icon:"◈", color:"#FF2D55", desc:"Verdict en 10 secondes",       clubOnly:true, systemPrompt:`Tu es CUT/GO™ MODE URGENCE. Ultra-rapide, pas de nuance. Réponds UNIQUEMENT en JSON valide : {"verdict":"GO"|"STOP","pourquoi":["r1"],"action":"string","risque":"string","consequence":"string","signal":"CRITIQUE"|"URGENT"|"STABLE"}` },
+  { id:"HIGH_RISK",   label:"MODE HIGH RISK",   icon:"◬", color:"#FF6B35", desc:"Analyse des risques extrêmes", clubOnly:true, systemPrompt:`Tu es CUT/GO™ MODE HIGH RISK. Focus pire scénario. Réponds UNIQUEMENT en JSON valide : {"verdict":"DANGER"|"RISQUE MODÉRÉ"|"ACCEPTABLE","pourquoi":["r1","r2"],"action":"string","risque":"string","consequence":"string","signal":"DANGER"|"ATTENTION"|"OK"}` },
+  { id:"MANIPULATION",label:"MODE MANIPULATION",icon:"◉", color:"#BF5AF2", desc:"Détecte si on te manipule",    clubOnly:true, systemPrompt:`Tu es CUT/GO™ MODE MANIPULATION. Détecte gaslighting, love bombing, manipulation émotionnelle. Réponds UNIQUEMENT en JSON valide : {"verdict":"MANIPULATION DÉTECTÉE"|"SUSPECT"|"SAIN","pourquoi":["r1","r2"],"action":"string","risque":"string","consequence":"string","signal":"DANGER"|"SUSPECT"|"SAIN"}` },
 ];
+
+const ALL_MODULES = [...BASE_MODULES, ...EXCLUSIVE_MODES];
 
 // ─── SCÉNARIOS ────────────────────────────────────────────────
 const SCENARIOS = {
   LOVE: [
-    { label:"Ex toxique qui revient", situation:"Je reviens toujours vers mon ex. Je sais que c'est toxique mais je n'arrive pas à m'en empêcher.", optionA:"Lui redonner une chance", optionB:"Couper définitivement", urgence:"élevée", objectif:"Sortir de ce cycle une fois pour toutes", peur:"Le regret et la solitude" },
-    { label:"Il/elle veut rien de sérieux", situation:"Il/elle m'appelle bébé la nuit, dort chez moi... mais en journée dit qu'il/elle veut rien de sérieux.", optionA:"Continuer en espérant qu'il/elle change", optionB:"Prendre de la distance", urgence:"élevée", objectif:"Ne pas m'attacher pour rien", peur:"La perdre" },
-    { label:"Amoureux de mon meilleur ami", situation:"Je suis amoureux(se) de mon meilleur ami(e) depuis 2 ans. Je n'ai jamais rien dit. Je ne sais plus si je peux continuer à faire semblant.", optionA:"Lui avouer mes sentiments", optionB:"Garder le secret et préserver l'amitié", urgence:"moyenne", objectif:"Ne pas perdre cette personne mais ne plus souffrir", peur:"Briser une amitié de 10 ans" },
-    { label:"Mon/ma partenaire m'a trompé(e)", situation:"Mon/ma partenaire m'a trompé(e) il y a 3 semaines. Il/elle dit que c'est fini et veut qu'on continue. Je suis partagé(e).", optionA:"Pardonner et recommencer", optionB:"Mettre fin à la relation", urgence:"moyenne", objectif:"Ne pas regretter ma décision dans 1 an", peur:"Partir et regretter, ou rester et souffrir encore" },
-    { label:"Relation longue distance", situation:"Relation longue distance depuis 1 an. On se voit 1 fois tous les 2 mois. Les doutes s'accumulent des deux côtés.", optionA:"Continuer à distance", optionB:"Mettre fin à la relation", urgence:"faible", objectif:"Construire quelque chose de stable", peur:"Avoir tout sacrifié pour rien" },
-    { label:"Retourner avec un ex après 1 an", situation:"Mon ex et moi sommes restés en contact. On se revoit depuis 2 mois. Je ressens encore des choses mais on s'est séparé pour de bonnes raisons.", optionA:"Tenter à nouveau la relation", optionB:"Couper le contact définitivement", urgence:"moyenne", objectif:"Éviter de revivre la même rupture", peur:"Passer à côté de quelque chose de vrai" },
+    { label:"Ex toxique qui revient",          situation:"Je reviens toujours vers mon ex. Je sais que c'est toxique mais je n'arrive pas à m'en empêcher.",                                                        optionA:"Lui redonner une chance",               optionB:"Couper définitivement",              urgence:"élevée",  objectif:"Sortir de ce cycle une fois pour toutes",             peur:"Le regret et la solitude" },
+    { label:"Il/elle veut rien de sérieux",    situation:"Il/elle m'appelle bébé la nuit, dort chez moi... mais en journée dit qu'il/elle veut rien de sérieux.",                                                  optionA:"Continuer en espérant qu'il/elle change",optionB:"Prendre de la distance",              urgence:"élevée",  objectif:"Ne pas m'attacher pour rien",                         peur:"La perdre" },
+    { label:"Amoureux de mon meilleur ami",    situation:"Je suis amoureux(se) de mon meilleur ami(e) depuis 2 ans. Je n'ai jamais rien dit.",                                                                     optionA:"Lui avouer mes sentiments",             optionB:"Garder le secret et préserver l'amitié",urgence:"moyenne", objectif:"Ne pas perdre cette personne mais ne plus souffrir",  peur:"Briser une amitié de 10 ans" },
+    { label:"Trahison / infidélité",           situation:"Mon/ma partenaire m'a trompé(e). Il/elle dit que c'est fini et veut qu'on continue.",                                                                    optionA:"Pardonner et recommencer",              optionB:"Mettre fin à la relation",           urgence:"moyenne", objectif:"Ne pas regretter ma décision dans 1 an",              peur:"Partir et regretter, ou rester et souffrir" },
+    { label:"Relation longue distance",        situation:"Relation longue distance depuis 1 an. On se voit 1 fois tous les 2 mois. Les doutes s'accumulent.",                                                      optionA:"Continuer à distance",                  optionB:"Mettre fin à la relation",           urgence:"faible",  objectif:"Construire quelque chose de stable",                  peur:"Avoir tout sacrifié pour rien" },
+    { label:"Retour après 1 an de séparation", situation:"Mon ex et moi sommes restés en contact. On se revoit depuis 2 mois mais on s'était séparé pour de bonnes raisons.",                                     optionA:"Tenter à nouveau la relation",          optionB:"Couper le contact définitivement",   urgence:"moyenne", objectif:"Éviter de revivre la même rupture",                   peur:"Passer à côté de quelque chose de vrai" },
   ],
   MONEY: [
-    { label:"Quitter le CDI pour entreprendre", situation:"CDI stable mais sans évolution. Projet de business depuis 8 mois. J'hésite à sauter le pas.", optionA:"Rester en CDI et lancer en parallèle", optionB:"Démissionner et me lancer à 100%", urgence:"moyenne", objectif:"Ne plus regretter dans 5 ans", peur:"Tout perdre et devoir recommencer à zéro" },
-    { label:"Investissement risqué", situation:"On me propose d'investir mes économies dans un projet avec un fort potentiel mais peu de garanties.", optionA:"Investir maintenant", optionB:"Attendre plus d'informations", urgence:"élevée", objectif:"Faire fructifier mon argent", peur:"Tout perdre" },
-    { label:"Demander une augmentation", situation:"Pas d'augmentation depuis 2 ans malgré mes résultats. Mon employeur tarde à répondre.", optionA:"Demander une augmentation ferme", optionB:"Chercher ailleurs", urgence:"moyenne", objectif:"Être payé à ma juste valeur", peur:"Perdre mon poste actuel" },
-    { label:"Acheter ou louer", situation:"J'ai assez pour un apport. Les prix sont hauts. Je me demande si c'est le bon moment d'acheter.", optionA:"Acheter maintenant", optionB:"Continuer à louer et attendre", urgence:"faible", objectif:"Construire un patrimoine sans me ruiner", peur:"Acheter au mauvais moment et perdre de la valeur" },
-    { label:"Rembourser dettes ou investir", situation:"J'ai 10 000€ de dettes à 5% et 10 000€ d'économies. Je me demande quoi faire avec cet argent.", optionA:"Tout utiliser pour rembourser mes dettes", optionB:"Investir et rembourser progressivement", urgence:"faible", objectif:"Optimiser ma situation financière", peur:"Faire le mauvais choix et perdre des années" },
-    { label:"Prêt de la famille", situation:"Ma famille veut me prêter 20 000€ pour financer mon projet. Pas d'intérêts mais la pression familiale sera réelle.", optionA:"Accepter le prêt familial", optionB:"Chercher un financement externe", urgence:"élevée", objectif:"Financer mon projet sans détruire mes relations", peur:"Créer des tensions familiales en cas d'échec" },
+    { label:"Quitter le CDI pour entreprendre",situation:"CDI stable mais sans évolution. Projet de business depuis 8 mois. J'hésite à sauter le pas.",                                                           optionA:"Rester en CDI et lancer en parallèle", optionB:"Démissionner et me lancer à 100%",   urgence:"moyenne", objectif:"Ne plus regretter dans 5 ans",                        peur:"Tout perdre et devoir recommencer à zéro" },
+    { label:"Investissement risqué",           situation:"On me propose d'investir mes économies dans un projet avec un fort potentiel mais peu de garanties.",                                                    optionA:"Investir maintenant",                   optionB:"Attendre plus d'informations",       urgence:"élevée",  objectif:"Faire fructifier mon argent",                         peur:"Tout perdre" },
+    { label:"Demander une augmentation",       situation:"Pas d'augmentation depuis 2 ans malgré mes résultats. Mon employeur tarde à répondre.",                                                                 optionA:"Demander une augmentation ferme",       optionB:"Chercher ailleurs",                  urgence:"moyenne", objectif:"Être payé à ma juste valeur",                         peur:"Perdre mon poste actuel" },
+    { label:"Acheter ou louer",                situation:"J'ai assez pour un apport. Les prix sont hauts. Je me demande si c'est le bon moment d'acheter.",                                                       optionA:"Acheter maintenant",                    optionB:"Continuer à louer et attendre",      urgence:"faible",  objectif:"Construire un patrimoine sans me ruiner",             peur:"Acheter au mauvais moment" },
+    { label:"Rembourser dettes ou investir",   situation:"J'ai 10 000€ de dettes à 5% et 10 000€ d'économies. Je me demande quoi faire avec cet argent.",                                                        optionA:"Tout utiliser pour rembourser mes dettes",optionB:"Investir et rembourser progressivement",urgence:"faible", objectif:"Optimiser ma situation financière",                   peur:"Faire le mauvais choix" },
+    { label:"Prêt de la famille",              situation:"Ma famille veut me prêter 20 000€ pour financer mon projet. Pas d'intérêts mais pression familiale réelle.",                                            optionA:"Accepter le prêt familial",             optionB:"Chercher un financement externe",    urgence:"élevée",  objectif:"Financer mon projet sans détruire mes relations",     peur:"Créer des tensions familiales en cas d'échec" },
   ],
   BUSINESS: [
-    { label:"Lancer sans validation", situation:"J'ai une idée de produit. Pas encore de client. Je veux lancer sans attendre.", optionA:"Lancer maintenant avec ce que j'ai", optionB:"Valider d'abord avec des clients potentiels", urgence:"élevée", objectif:"Générer mes premiers revenus rapidement", peur:"Lancer quelque chose que personne ne veut" },
-    { label:"Associé problématique", situation:"Mon associé ne travaille plus autant que moi mais veut garder 50% des parts.", optionA:"Négocier une nouvelle répartition", optionB:"Se séparer et continuer seul", urgence:"élevée", objectif:"Préserver mon projet", peur:"Me retrouver seul" },
-    { label:"Pivoter ou persévérer", situation:"Mon produit ne décolle pas après 6 mois. Je me demande si je dois pivoter ou insister.", optionA:"Pivoter vers une nouvelle direction", optionB:"Continuer sur la même trajectoire", urgence:"élevée", objectif:"Faire fonctionner ce business", peur:"Abandonner trop tôt ou persister trop longtemps" },
-    { label:"Baisser mes prix", situation:"Mes concurrents sont moins chers. Je perds des clients. Je me demande si je dois m'aligner.", optionA:"Baisser mes prix pour être compétitif", optionB:"Maintenir mes prix et travailler ma valeur perçue", urgence:"élevée", objectif:"Gagner des clients sans détruire ma marge", peur:"Perdre encore plus de clients en ne changeant rien" },
-    { label:"Faire appel à un investisseur", situation:"Un investisseur propose 50K€ pour 20% de mon business. J'en ai besoin pour accélérer mais je cède de la valeur.", optionA:"Accepter l'investissement", optionB:"Croître organiquement et rester seul maître", urgence:"moyenne", objectif:"Accélérer sans perdre le contrôle", peur:"Diluer mon capital et regretter" },
-    { label:"Externaliser ou tout faire seul", situation:"Je suis débordé. Je peux externaliser certaines tâches mais ça coûte et je dois faire confiance à quelqu'un.", optionA:"Externaliser et me concentrer sur l'essentiel", optionB:"Tout faire moi-même pour contrôler la qualité", urgence:"moyenne", objectif:"Scaler sans m'épuiser", peur:"Perdre la qualité ou continuer à me noyer" },
+    { label:"Lancer sans validation",          situation:"J'ai une idée de produit. Pas encore de client. Je veux lancer sans attendre.",                                                                         optionA:"Lancer maintenant avec ce que j'ai",    optionB:"Valider d'abord avec des clients",   urgence:"élevée",  objectif:"Générer mes premiers revenus rapidement",             peur:"Lancer quelque chose que personne ne veut" },
+    { label:"Associé problématique",           situation:"Mon associé ne travaille plus autant que moi mais veut garder 50% des parts.",                                                                          optionA:"Négocier une nouvelle répartition",     optionB:"Se séparer et continuer seul",       urgence:"élevée",  objectif:"Préserver mon projet",                                peur:"Me retrouver seul" },
+    { label:"Pivoter ou persévérer",           situation:"Mon produit ne décolle pas après 6 mois. Je me demande si je dois pivoter ou insister.",                                                               optionA:"Pivoter vers une nouvelle direction",   optionB:"Continuer sur la même trajectoire",  urgence:"élevée",  objectif:"Faire fonctionner ce business",                       peur:"Abandonner trop tôt ou persister trop longtemps" },
+    { label:"Baisser mes prix",                situation:"Mes concurrents sont moins chers. Je perds des clients. Je me demande si je dois m'aligner.",                                                           optionA:"Baisser mes prix pour être compétitif", optionB:"Maintenir mes prix et travailler ma valeur perçue",urgence:"élevée",objectif:"Gagner des clients sans détruire ma marge",  peur:"Perdre encore plus de clients" },
+    { label:"Faire appel à un investisseur",   situation:"Un investisseur propose 50K€ pour 20% de mon business. J'en ai besoin pour accélérer.",                                                                optionA:"Accepter l'investissement",             optionB:"Croître organiquement et rester seul maître",urgence:"moyenne",objectif:"Accélérer sans perdre le contrôle",             peur:"Diluer mon capital et regretter" },
+    { label:"Externaliser ou tout faire seul", situation:"Je suis débordé. Je peux externaliser certaines tâches mais ça coûte et je dois faire confiance à quelqu'un.",                                         optionA:"Externaliser et me concentrer sur l'essentiel",optionB:"Tout faire moi-même pour contrôler la qualité",urgence:"moyenne",objectif:"Scaler sans m'épuiser",               peur:"Perdre la qualité ou continuer à me noyer" },
   ],
   CREATOR: [
-    { label:"Publier sans être prêt", situation:"Ma vidéo est prête à 80%. Je pourrais peaufiner encore mais le sujet est tendance maintenant.", optionA:"Publier maintenant", optionB:"Peaufiner encore 1 semaine", urgence:"élevée", objectif:"Profiter du momentum", peur:"Être jugé sur un contenu imparfait" },
-    { label:"Changer de niche", situation:"Je crée du contenu dans une niche depuis 1 an avec peu de croissance. Une autre niche m'attire.", optionA:"Changer de niche", optionB:"Persévérer dans la niche actuelle", urgence:"faible", objectif:"Avoir une audience engagée", peur:"Perdre ce que j'ai déjà construit" },
-    { label:"Collaboration douteuse", situation:"Une marque veut me payer pour un partenariat mais leurs valeurs ne correspondent pas aux miennes.", optionA:"Accepter le partenariat", optionB:"Refuser et attendre mieux", urgence:"élevée", objectif:"Monétiser sans compromettre mon image", peur:"Perdre l'opportunité financière" },
-    { label:"Monétiser maintenant ou attendre", situation:"J'ai 5 000 abonnés. Je peux commencer à monétiser mais je ne sais pas si c'est trop tôt.", optionA:"Monétiser maintenant", optionB:"Attendre 20 000 abonnés pour monétiser", urgence:"faible", objectif:"Générer des revenus sans faire fuir mon audience", peur:"Paraître trop commercial trop tôt" },
-    { label:"Court ou long format", situation:"Mon audience est mixte. Les shorts cartonnent en vues mais les longues vidéos créent plus d'engagement et de fidélité.", optionA:"Me concentrer sur le court format", optionB:"Continuer le long format malgré les moins de vues", urgence:"faible", objectif:"Construire une vraie communauté fidèle", peur:"Sacrifier la qualité pour l'algorithme" },
-    { label:"Révéler mon identité ou rester anonyme", situation:"Je crée du contenu en anonyme depuis 6 mois. Je vois que révéler mon identité boosterait ma croissance mais j'ai peur.", optionA:"Révéler qui je suis", optionB:"Rester anonyme et préserver ma vie privée", urgence:"faible", objectif:"Grandir plus vite sans sacrifier ma tranquillité", peur:"Les conséquences professionnelles et personnelles" },
+    { label:"Publier sans être prêt",          situation:"Ma vidéo est prête à 80%. Je pourrais peaufiner encore mais le sujet est tendance maintenant.",                                                         optionA:"Publier maintenant",                    optionB:"Peaufiner encore 1 semaine",         urgence:"élevée",  objectif:"Profiter du momentum",                                peur:"Être jugé sur un contenu imparfait" },
+    { label:"Changer de niche",                situation:"Je crée du contenu dans une niche depuis 1 an avec peu de croissance. Une autre niche m'attire.",                                                       optionA:"Changer de niche",                      optionB:"Persévérer dans la niche actuelle",  urgence:"faible",  objectif:"Avoir une audience engagée",                          peur:"Perdre ce que j'ai déjà construit" },
+    { label:"Collaboration douteuse",          situation:"Une marque veut me payer pour un partenariat mais leurs valeurs ne correspondent pas aux miennes.",                                                     optionA:"Accepter le partenariat",               optionB:"Refuser et attendre mieux",          urgence:"élevée",  objectif:"Monétiser sans compromettre mon image",              peur:"Perdre l'opportunité financière" },
+    { label:"Monétiser maintenant ou attendre",situation:"J'ai 5 000 abonnés. Je peux commencer à monétiser mais je ne sais pas si c'est trop tôt.",                                                             optionA:"Monétiser maintenant",                  optionB:"Attendre 20 000 abonnés",            urgence:"faible",  objectif:"Générer des revenus sans faire fuir mon audience",   peur:"Paraître trop commercial trop tôt" },
+    { label:"Court ou long format",            situation:"Les shorts cartonnent en vues mais les longues vidéos créent plus d'engagement et de fidélité.",                                                        optionA:"Me concentrer sur le court format",     optionB:"Continuer le long format",           urgence:"faible",  objectif:"Construire une vraie communauté fidèle",             peur:"Sacrifier la qualité pour l'algorithme" },
+    { label:"Révéler mon identité",            situation:"Je crée du contenu en anonyme depuis 6 mois. Révéler mon identité boosterait ma croissance.",                                                          optionA:"Révéler qui je suis",                   optionB:"Rester anonyme",                     urgence:"faible",  objectif:"Grandir plus vite sans sacrifier ma tranquillité",   peur:"Les conséquences professionnelles et personnelles" },
   ],
   CAREER: [
-    { label:"Offre externe alléchante", situation:"CDI correct mais sans évolution. Offre externe avec 30% d'augmentation en startup risquée.", optionA:"Accepter l'offre externe", optionB:"Rester et négocier une promotion interne", urgence:"élevée", objectif:"Accélérer ma progression", peur:"Rejoindre une startup qui coule" },
-    { label:"Reconversion professionnelle", situation:"10 ans dans mon domaine. Je veux me reconvertir mais cela implique de repartir de zéro.", optionA:"Me reconvertir maintenant", optionB:"Attendre d'être plus stable", urgence:"faible", objectif:"Travailler dans quelque chose qui a du sens", peur:"Regretter d'avoir attendu" },
-    { label:"Conflit avec le manager", situation:"Conflit ouvert avec mon manager. L'ambiance est insupportable. On me propose de changer de service.", optionA:"Changer de service en interne", optionB:"Chercher un autre emploi", urgence:"élevée", objectif:"Travailler dans un environnement sain", peur:"Fuir sans résoudre le problème" },
-    { label:"Devenir manager ou rester expert", situation:"On me propose un poste de manager. Plus de salaire mais plus de terrain. Je suis passionné par mon travail technique.", optionA:"Accepter le poste de manager", optionB:"Rester expert et demander une revalorisation", urgence:"moyenne", objectif:"Progresser sans perdre ce qui me passionne", peur:"Devenir manager et détester ça" },
-    { label:"Partir travailler à l'étranger", situation:"Une offre à l'étranger pendant 2 ans. Salaire doublé, expérience internationale. Mais quitter ma vie ici.", optionA:"Partir à l'étranger", optionB:"Rester et chercher mieux localement", urgence:"élevée", objectif:"Accélérer ma carrière sans tout sacrifier", peur:"Partir et rater des opportunités ici, ou rester et regretter" },
-    { label:"Créer une entreprise en gardant mon emploi", situation:"Je veux lancer un projet en parallèle de mon emploi. Mon contrat l'interdit partiellement. Le risque est réel.", optionA:"Lancer malgré la clause contractuelle", optionB:"Attendre de quitter mon emploi", urgence:"moyenne", objectif:"Avoir un plan B sans perdre ma sécurité", peur:"Me faire licencier ou rater le lancement" },
+    { label:"Offre externe alléchante",        situation:"CDI correct mais sans évolution. Offre externe avec 30% d'augmentation en startup risquée.",                                                            optionA:"Accepter l'offre externe",              optionB:"Rester et négocier une promotion",   urgence:"élevée",  objectif:"Accélérer ma progression",                           peur:"Rejoindre une startup qui coule" },
+    { label:"Reconversion professionnelle",    situation:"10 ans dans mon domaine. Je veux me reconvertir mais cela implique de repartir de zéro.",                                                               optionA:"Me reconvertir maintenant",             optionB:"Attendre d'être plus stable",        urgence:"faible",  objectif:"Travailler dans quelque chose qui a du sens",        peur:"Regretter d'avoir attendu" },
+    { label:"Conflit avec le manager",         situation:"Conflit ouvert avec mon manager. L'ambiance est insupportable. On me propose de changer de service.",                                                   optionA:"Changer de service en interne",         optionB:"Chercher un autre emploi",           urgence:"élevée",  objectif:"Travailler dans un environnement sain",              peur:"Fuir sans résoudre le problème" },
+    { label:"Devenir manager ou rester expert",situation:"On me propose un poste de manager. Plus de salaire mais plus de terrain. Je suis passionné par mon travail technique.",                                  optionA:"Accepter le poste de manager",          optionB:"Rester expert et demander une revalorisation",urgence:"moyenne",objectif:"Progresser sans perdre ce qui me passionne",        peur:"Devenir manager et détester ça" },
+    { label:"Partir travailler à l'étranger",  situation:"Une offre à l'étranger pendant 2 ans. Salaire doublé, expérience internationale.",                                                                     optionA:"Partir à l'étranger",                   optionB:"Rester et chercher mieux localement",urgence:"élevée",  objectif:"Accélérer ma carrière sans tout sacrifier",          peur:"Partir et rater des opportunités ici" },
+    { label:"Business en parallèle du CDI",   situation:"Je veux lancer un projet en parallèle de mon emploi. Mon contrat l'interdit partiellement.",                                                            optionA:"Lancer malgré la clause contractuelle", optionB:"Attendre de quitter mon emploi",     urgence:"moyenne", objectif:"Avoir un plan B sans perdre ma sécurité",            peur:"Me faire licencier ou rater le lancement" },
   ],
 };
 
-// ─── FORMATS ──────────────────────────────────────────────────
-const FORMATS = [
-  { id:"STANDARD", label:"STANDARD", color:"#F0F0F0" },
-  { id:"BRUTAL", label:"BRUTAL", color:"#FF2D55" },
-  { id:"RAPIDE", label:"RAPIDE", color:"#FFD60A" },
-  { id:"STRATÉGIQUE", label:"STRATÉGIQUE", color:"#0A84FF" },
-];
 const FORMAT_PROMPTS = {
-  BRUTAL: `Reformate ce verdict en MODE BRUTAL. Ton cash, sans pitié, 2 raisons max très courtes. Réponds UNIQUEMENT en JSON valide avec les mêmes clés.`,
-  RAPIDE: `Reformate ce verdict en MODE RAPIDE. 1 raison courte, action en 5 mots max. Réponds UNIQUEMENT en JSON valide avec les mêmes clés.`,
-  STRATÉGIQUE: `Reformate ce verdict en MODE STRATÉGIQUE. 3 raisons détaillées, perspective long terme. Réponds UNIQUEMENT en JSON valide avec les mêmes clés.`,
+  BRUTAL:    `Reformate en MODE BRUTAL. Ton cash, sans pitié, 2 raisons max très courtes. Réponds UNIQUEMENT en JSON valide avec les mêmes clés.`,
+  RAPIDE:    `Reformate en MODE RAPIDE. 1 raison courte, action en 5 mots max. Réponds UNIQUEMENT en JSON valide avec les mêmes clés.`,
+  STRATÉGIQUE:`Reformate en MODE STRATÉGIQUE. 3 raisons détaillées, perspective long terme. Réponds UNIQUEMENT en JSON valide avec les mêmes clés.`,
 };
 
 // ─── COULEURS ─────────────────────────────────────────────────
-const SIGNAL_COLORS = {
-  SAIN:"#30D158",INSTABLE:"#FFD60A",TOXIQUE:"#FF2D55",
-  RENTABLE:"#30D158","RISQUÉ":"#FFD60A",MAUVAIS:"#FF2D55",
-  SCALABLE:"#30D158",FAIBLE:"#FF2D55","À TESTER":"#FFD60A",
-  VIRAL:"#30D158",MOYEN:"#FFD60A",INVISIBLE:"#FF2D55",
-  "ÉVOLUTIF":"#30D158",STABLE:"#FFD60A","BLOQUÉ":"#FF2D55",
-  CRITIQUE:"#FF2D55",URGENT:"#FFD60A",DANGER:"#FF2D55",
-  ATTENTION:"#FFD60A",OK:"#30D158",SUSPECT:"#FFD60A",
-};
-const VERDICT_COLORS = {
-  RESTE:"#30D158",QUITTE:"#FF2D55","PRENDS DU RECUL":"#FFD60A",
-  INVESTIS:"#30D158",REFUSE:"#FF2D55",ATTENDS:"#FFD60A",
-  LANCE:"#30D158",STOP:"#FF2D55",TEST:"#FFD60A",
-  PUBLIE:"#30D158",OPTIMISE:"#FFD60A",
-  ACCEPTE:"#30D158","PRÉPARE":"#FFD60A",
-  GO:"#30D158",DANGER:"#FF2D55","RISQUE MODÉRÉ":"#FFD60A",ACCEPTABLE:"#30D158",
-  "MANIPULATION DÉTECTÉE":"#FF2D55",SUSPECT:"#FFD60A",SAIN:"#30D158",
-};
+const VC = { QUITTE:"#FF453A","PRENDS DU RECUL":"#FFD60A",RESTE:"#30D158",REFUSE:"#FF453A",ATTENDS:"#FFD60A",INVESTIS:"#30D158",STOP:"#FF453A",TEST:"#FFD60A",LANCE:"#30D158",OPTIMISE:"#FFD60A",PUBLIE:"#30D158","PRÉPARE":"#FFD60A",ACCEPTE:"#30D158",GO:"#30D158",DANGER:"#FF453A","RISQUE MODÉRÉ":"#FFD60A",ACCEPTABLE:"#30D158","MANIPULATION DÉTECTÉE":"#FF453A",SUSPECT:"#FFD60A",SAIN:"#30D158" };
+const SC = { SAIN:"#30D158",INSTABLE:"#FFD60A",TOXIQUE:"#FF453A",RENTABLE:"#30D158","RISQUÉ":"#FFD60A",MAUVAIS:"#FF453A",SCALABLE:"#30D158",FAIBLE:"#FF453A","À TESTER":"#FFD60A",VIRAL:"#30D158",MOYEN:"#FFD60A",INVISIBLE:"#FF453A","ÉVOLUTIF":"#30D158",STABLE:"#FFD60A","BLOQUÉ":"#FF453A",CRITIQUE:"#FF453A",URGENT:"#FFD60A",DANGER:"#FF453A",ATTENTION:"#FFD60A",OK:"#30D158",SUSPECT:"#FFD60A" };
 
 // ─── STORAGE ──────────────────────────────────────────────────
-const LS = {
-  get: (k, def) => { try { const v = localStorage.getItem(k); return v !== null ? JSON.parse(v) : def; } catch(e) { return def; } },
-  set: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch(e) {} },
-};
-const getCount = () => LS.get("cg_count", 0);
-const addCount = () => LS.set("cg_count", getCount() + 1);
-const isUnlocked = () => LS.get("cg_unlocked", false);
-const setUnlockedLS = () => LS.set("cg_unlocked", true);
-const getHistory = () => LS.get("cg_history", []);
-const saveToHistory = (entry) => {
-  const hist = getHistory();
-  hist.unshift(entry);
-  if (hist.length > 50) hist.pop();
-  LS.set("cg_history", hist);
-};
+const LS = { get:(k,d)=>{ try{ const v=localStorage.getItem(k); return v!==null?JSON.parse(v):d; }catch(e){ return d; } }, set:(k,v)=>{ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} } };
+const getCount    = ()=> LS.get("cg_count",0);
+const addCount    = ()=> LS.set("cg_count",getCount()+1);
+const getUnlocked = ()=> LS.get("cg_unlocked",false);
+const setUnlocked = ()=> LS.set("cg_unlocked",true);
+const getHistory  = ()=> LS.get("cg_history",[]);
+const pushHistory = (e)=>{ const h=getHistory(); h.unshift(e); if(h.length>50)h.pop(); LS.set("cg_history",h); };
 
 // ─── SHARE ────────────────────────────────────────────────────
-// URL courte et encodage robuste
-const encodeShare = (data) => {
-  try {
-    const json = JSON.stringify(data);
-    const enc = encodeURIComponent(json);
-    return btoa(enc).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
-  } catch(e) { return null; }
-};
-const decodeShare = (enc) => {
-  try {
-    const b64 = enc.replace(/-/g,"+").replace(/_/g,"/");
-    const padded = b64 + "===".slice(0,(4-b64.length%4)%4);
-    return JSON.parse(decodeURIComponent(atob(padded)));
-  } catch(e) { return null; }
-};
-// N'encode que l'essentiel pour un lien court
-const getShareURL = (mod, result) => {
-  const data = {
-    ml: mod.label, mc: mod.color, mi: mod.icon,
-    v: result.verdict, s: result.signal,
-    a: result.action, p: result.pourquoi?.[0] || "",
-    d: new Date().toLocaleDateString("fr-FR")
-  };
-  const enc = encodeShare(data);
-  if (!enc) return null;
-  return window.location.href.split("#")[0] + "#s/" + enc;
-};
+const encShare = (d)=>{ try{ return btoa(encodeURIComponent(JSON.stringify(d))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,""); }catch(e){ return null; } };
+const decShare = (s)=>{ try{ const b=s.replace(/-/g,"+").replace(/_/g,"/"); const p=b+"===".slice(0,(4-b.length%4)%4); return JSON.parse(decodeURIComponent(atob(p))); }catch(e){ return null; } };
+const buildShareLink = (mod,result)=>{ const enc=encShare({v:result.verdict,s:result.signal,a:result.action,ml:mod.label,mc:mod.color,mi:mod.icon}); return enc?`https://${SITE_URL}/#s/${enc}`:`https://${SITE_URL}`; };
 
-// ─── STYLES ───────────────────────────────────────────────────
-const inp = (c) => ({ width:"100%", background:"#0F0F0F", border:"1px solid #1E1E1E", borderBottom:`1px solid ${c}33`, color:"#F0F0F0", padding:"12px 14px", fontFamily:"'Courier New',monospace", fontSize:13, outline:"none", boxSizing:"border-box" });
-const btn = (bg, fg, ex={}) => ({ background:bg, border:`1px solid ${bg==="transparent"?"#222":bg}`, color:fg, padding:"14px 0", cursor:"pointer", fontFamily:"'Courier New',monospace", fontWeight:700, letterSpacing:3, fontSize:11, ...ex });
+// ─── UI ATOMS ─────────────────────────────────────────────────
+const Lbl = ({children,color,mb=10})=> <div style={{fontFamily:MONO,fontSize:9,letterSpacing:4,color:color||MUTED,marginBottom:mb,textTransform:"uppercase"}}>{children}</div>;
+const Crd = ({children,accent,hi,style={}})=> <div style={{background:hi?`${accent}15`:CARD,border:`1px solid ${hi?`${accent}30`:BORDER}`,borderRadius:16,padding:"18px",...style}}>{children}</div>;
 
-// ─── APP ──────────────────────────────────────────────────────
-export default function App() {
-  const [page, setPage] = useState("home");
-  const [mod, setMod] = useState(null);
-  const [form, setForm] = useState({ situation:"", optionA:"", optionB:"", optionC:"", urgence:"moyenne", objectif:"", peur:"" });
-  const [result, setResult] = useState(null);
-  const [originalResult, setOriginalResult] = useState(null);
-  const [error, setError] = useState("");
-  const [unlocked, setUnlocked] = useState(isUnlocked());
-  const [count, setCount] = useState(getCount());
-  const [history, setHistory] = useState(getHistory());
-  const [showPaywall, setShowPaywall] = useState(false);
-  const [showShareModal, setShowShareModal] = useState(false);
-  const [shareURL, setShareURL] = useState("");
-  const [shareCopied, setShareCopied] = useState(false);
-  const [codeInput, setCodeInput] = useState("");
-  const [codeError, setCodeError] = useState("");
-  const [showScenarios, setShowScenarios] = useState(false);
-  const [selectedEntry, setSelectedEntry] = useState(null);
-  const [activeFormat, setActiveFormat] = useState("STANDARD");
-  const [formatLoading, setFormatLoading] = useState(false);
-  const [sharedData, setSharedData] = useState(null);
+// ─── ÉCRAN PARTAGÉ (destinataire) ────────────────────────────
+function SharedView({ data }) {
+  const vc = VC[data.v]||"#F0F0F6";
+  const sc = SC[data.s]||"#888";
+  return (
+    <div style={{background:BG,minHeight:"100vh",fontFamily:SANS,color:TEXT,padding:"0 0 40px"}}>
+      <div style={{textAlign:"center",padding:"24px 0 18px",borderBottom:`1px solid ${BORDER}`}}>
+        <div style={{fontFamily:MONO,fontSize:22,fontWeight:900,color:"#FFFFFF",letterSpacing:-1}}>CUT/GO™</div>
+        <div style={{fontFamily:MONO,fontSize:8,letterSpacing:6,color:"#2A2A2A",marginTop:4}}>DECISION ENGINE</div>
+      </div>
+      <div style={{maxWidth:520,margin:"0 auto",padding:"20px 16px",display:"flex",flexDirection:"column",gap:10}}>
+        <div style={{background:`${vc}12`,border:`1px solid ${vc}28`,borderRadius:16,padding:"22px 20px"}}>
+          <Lbl color={sc}>— Verdict reçu · {data.ml}</Lbl>
+          <div style={{fontFamily:SANS,fontSize:54,fontWeight:800,color:vc,letterSpacing:-4,lineHeight:.85,marginBottom:14}}>{data.v}</div>
+          <div style={{height:2,background:`linear-gradient(90deg,${vc},transparent)`,borderRadius:1,marginBottom:14}}/>
+          <div style={{display:"inline-flex",alignItems:"center",gap:6,background:`${sc}18`,borderRadius:8,padding:"5px 12px"}}>
+            <div style={{width:6,height:6,borderRadius:"50%",background:sc}}/>
+            <div style={{fontFamily:MONO,fontSize:9,color:sc,letterSpacing:2}}>{data.s}</div>
+          </div>
+        </div>
+        <Crd>
+          <Lbl>L'action recommandée</Lbl>
+          <div style={{fontFamily:SANS,fontSize:14,fontWeight:600,color:TEXT,lineHeight:1.5,fontStyle:"italic"}}>« {data.a} »</div>
+        </Crd>
+        <div style={{background:CARD2,border:`1px solid ${BORDER}`,borderRadius:16,padding:"24px 20px",textAlign:"center"}}>
+          <Lbl mb={12}>Et toi ?</Lbl>
+          <div style={{fontFamily:SANS,fontSize:18,fontWeight:700,color:TEXT,marginBottom:8,lineHeight:1.3}}>Qu'est-ce que l'IA te dirait à toi ?</div>
+          <div style={{fontFamily:SANS,fontSize:12,color:MUTED,marginBottom:20,lineHeight:1.5}}>3 décisions gratuites · Aucune inscription</div>
+          <a href={`https://${SITE_URL}`} style={{textDecoration:"none",display:"block"}}>
+            <button style={{width:"100%",padding:"17px 0",background:TEXT,border:"none",borderRadius:14,color:"#000",fontFamily:MONO,fontSize:11,fontWeight:900,letterSpacing:3,cursor:"pointer"}}>⚡ OBTENIR MON VERDICT</button>
+          </a>
+          <div style={{fontFamily:MONO,fontSize:8,color:"#2A2A2A",marginTop:12,letterSpacing:3}}>{SITE_URL}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
-  // Detect share URL on load — map compact keys to full format
-  useEffect(() => {
-    const hash = window.location.hash;
-    if (hash.startsWith("#s/")) {
-      const compact = decodeShare(hash.slice(3));
-      if (compact) {
-        // Support both old full format and new compact format
-        const data = compact.ml ? {
-          modLabel: compact.ml, modColor: compact.mc, modIcon: compact.mi,
-          date: compact.d,
-          result: { verdict:compact.v, signal:compact.s, action:compact.a, pourquoi:[compact.p] }
-        } : compact;
-        setSharedData(data);
-        setPage("shared");
-      }
-    }
-  }, []);
+// ─── PAYWALL ──────────────────────────────────────────────────
+function Paywall({ count, onClose, onUnlock }) {
+  const [code,setCode]=useState(""); const [err,setErr]=useState("");
+  const check=()=>{ const c=code.trim().toUpperCase(); if(c.startsWith(VALID_CODE_PREFIX)&&c.length>=10){ setUnlocked(); onUnlock(); }else{ setErr("Code invalide. Vérifie ton email Gumroad."); } };
+  return (
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.93)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+      <div style={{maxWidth:440,width:"100%",background:"#0D0D0F",border:`1px solid ${BORDER}`,borderRadius:20,padding:"32px 24px"}}>
+        <Lbl mb={14}>Accès limité</Lbl>
+        <div style={{fontFamily:SANS,fontSize:22,fontWeight:700,color:TEXT,marginBottom:8,lineHeight:1.2}}>{count>=FREE_DECISIONS?`Tes ${FREE_DECISIONS} décisions gratuites sont utilisées.`:"Mode exclusif Club."}</div>
+        <div style={{fontFamily:SANS,fontSize:13,color:MUTED,marginBottom:22,lineHeight:1.6}}>7 jours offerts. Ensuite 9€/mois.</div>
+        <div style={{background:CARD,border:`1px solid ${BORDER}`,borderRadius:14,padding:"14px 16px",marginBottom:18}}>
+          {["Décisions illimitées","Historique complet","3 modes exclusifs : URGENCE, HIGH RISK, MANIPULATION","Formats BRUTAL / RAPIDE / STRATÉGIQUE","6 scénarios par module"].map((f,i)=>(
+            <div key={i} style={{fontFamily:SANS,fontSize:12,color:MUTED,marginBottom:5,display:"flex",gap:10}}><span style={{color:"#30D158"}}>✓</span>{f}</div>
+          ))}
+        </div>
+        <a href={GUMROAD_URL} target="_blank" rel="noopener noreferrer" style={{textDecoration:"none",display:"block",marginBottom:14}}>
+          <button style={{width:"100%",padding:"16px 0",background:TEXT,border:"none",borderRadius:14,color:"#000",fontFamily:MONO,fontSize:11,fontWeight:900,letterSpacing:3,cursor:"pointer"}}>⚡ COMMENCER — 7 JOURS OFFERTS</button>
+        </a>
+        <Lbl mb={8}>J'ai déjà un code</Lbl>
+        <div style={{display:"flex",gap:8,marginBottom:err?8:0}}>
+          <input value={code} onChange={e=>setCode(e.target.value)} placeholder="CUTGO-XXXXXX" onKeyDown={e=>e.key==="Enter"&&check()} style={{flex:1,background:CARD2,border:`1px solid ${BORDER}`,borderRadius:10,color:TEXT,padding:"11px 14px",fontFamily:MONO,fontSize:12,outline:"none"}}/>
+          <button onClick={check} style={{background:CARD2,border:`1px solid ${BORDER}`,borderRadius:10,color:TEXT,padding:"0 18px",fontFamily:MONO,fontSize:10,fontWeight:700,cursor:"pointer",letterSpacing:1}}>OK</button>
+        </div>
+        {err&&<div style={{fontFamily:MONO,color:"#FF453A",fontSize:10,marginBottom:8,letterSpacing:1}}>{err}</div>}
+        <button onClick={onClose} style={{background:"none",border:"none",color:"#333",fontFamily:MONO,fontSize:9,cursor:"pointer",marginTop:14,display:"block",width:"100%",textAlign:"center",letterSpacing:2}}>Retour</button>
+      </div>
+    </div>
+  );
+}
 
-  // Sync localStorage on every render
-  useEffect(() => {
-    setCount(getCount());
-    setUnlocked(isUnlocked());
-    setHistory(getHistory());
-  }, [page]);
+// ─── SHARE MODAL ──────────────────────────────────────────────
+function ShareModal({ mod, result, onClose }) {
+  const [copied,setCopied]=useState(false);
+  const link = buildShareLink(mod,result);
+  const copy=()=>{ navigator.clipboard.writeText(link); setCopied(true); setTimeout(()=>setCopied(false),2500); };
+  const vc=VC[result.verdict]||mod.color;
+  const sc=SC[result.signal]||"#888";
+  return (
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.93)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+      <div style={{maxWidth:440,width:"100%",background:"#0D0D0F",border:`1px solid ${BORDER}`,borderRadius:20,padding:"28px 22px"}}>
+        <Lbl mb={18}>Partager mon verdict</Lbl>
+        <div style={{background:`${vc}10`,border:`1px solid ${vc}25`,borderRadius:14,padding:"14px 16px",marginBottom:14,display:"flex",alignItems:"center",gap:12}}>
+          <div style={{fontFamily:SANS,fontSize:28,fontWeight:800,color:vc,letterSpacing:-1}}>{result.verdict}</div>
+          <div style={{width:1,height:32,background:BORDER}}/>
+          <div><div style={{fontFamily:MONO,fontSize:8,color:sc,letterSpacing:2,marginBottom:3}}>{result.signal}</div><div style={{fontFamily:SANS,fontSize:11,color:MUTED}}>{mod.label} · CUT/GO™</div></div>
+        </div>
+        <div style={{background:CARD,border:`1px solid ${BORDER}`,borderRadius:12,padding:"12px 14px",marginBottom:14}}>
+          <Lbl mb={6}>Lien</Lbl>
+          <div style={{fontFamily:MONO,fontSize:10,color:MUTED,wordBreak:"break-all",lineHeight:1.5}}>{SITE_URL}/#s/<span style={{color:TEXT}}>{"..."}</span></div>
+        </div>
+        <button onClick={copy} style={{width:"100%",padding:"15px 0",background:copied?"#30D158":TEXT,border:"none",borderRadius:14,color:"#000",fontFamily:MONO,fontSize:11,fontWeight:900,letterSpacing:3,cursor:"pointer",marginBottom:10}}>
+          {copied?"✓ LIEN COPIÉ !":"COPIER LE LIEN"}
+        </button>
+        <div style={{fontFamily:SANS,fontSize:12,color:MUTED,textAlign:"center",lineHeight:1.6,marginBottom:14}}>Ton ami ouvre le lien et voit ton verdict.<br/>Un bouton l'invite à tester l'appli.</div>
+        <button onClick={onClose} style={{background:"none",border:"none",color:"#333",fontFamily:MONO,fontSize:9,cursor:"pointer",display:"block",width:"100%",textAlign:"center",letterSpacing:2}}>Fermer</button>
+      </div>
+    </div>
+  );
+}
 
-  const remaining = Math.max(0, FREE_DECISIONS - count);
+// ─── RÉSULTAT ─────────────────────────────────────────────────
+function ResultScreen({ mod, result, onHome, onNew, unlocked, onPaywall }) {
+  const [activeFormat,setActiveFormat]=useState("STANDARD");
+  const [formatLoading,setFormatLoading]=useState(false);
+  const [displayResult,setDisplayResult]=useState(result);
+  const [showShare,setShowShare]=useState(false);
+  const vc=VC[displayResult.verdict]||mod.color;
+  const sc=SC[displayResult.signal]||"#888";
 
-  const navigate = (p) => { setPage(p); setSelectedEntry(null); setShowScenarios(false); setError(""); };
-
-  const selectModule = (m) => {
-    if (!unlocked && m.clubOnly) { setShowPaywall(true); return; }
-    if (!unlocked && count >= FREE_DECISIONS) { setShowPaywall(true); return; }
-    setMod(m); setPage("form");
-    setForm({ situation:"", optionA:"", optionB:"", optionC:"", urgence:"moyenne", objectif:"", peur:"" });
-    setResult(null); setOriginalResult(null); setError(""); setActiveFormat("STANDARD"); setShowScenarios(false);
-  };
-
-  const loadScenario = (s) => {
-    setForm(f => ({ ...f, situation:s.situation, optionA:s.optionA, optionB:s.optionB, urgence:s.urgence, objectif:s.objectif, peur:s.peur }));
-    setShowScenarios(false);
-  };
-
-  const callAPI = async (systemPrompt, userMsg) => {
-    const res = await fetch("/api/decide", {
-      method:"POST", headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({ systemPrompt, userMsg })
-    });
-    const data = await res.json();
-    if (data.error) throw new Error(data.error);
-    return data;
-  };
-
-  const handleSubmit = async () => {
-    if (!form.situation||!form.optionA||!form.optionB||!form.objectif||!form.peur) { setError("Remplis tous les champs."); return; }
-    setError(""); setPage("loading");
-    const userMsg = `SITUATION : ${form.situation}\nOPTION A : ${form.optionA}\nOPTION B : ${form.optionB}${form.optionC?`\nOPTION C : ${form.optionC}`:""}\nURGENCE : ${form.urgence}\nOBJECTIF : ${form.objectif}\nPEUR PRINCIPALE : ${form.peur}`;
-    try {
-      const data = await callAPI(mod.systemPrompt, userMsg);
-      addCount();
-      const entry = { id:Date.now(), date:new Date().toISOString(), mod:{id:mod.id,label:mod.label,color:mod.color,icon:mod.icon}, form:{...form}, result:data };
-      saveToHistory(entry);
-      setCount(getCount());
-      setHistory(getHistory());
-      setResult(data); setOriginalResult(data); setPage("result"); setActiveFormat("STANDARD");
-    } catch(e) { setError("Erreur. Réessaie."); setPage("form"); }
-  };
-
-  const handleFormat = async (formatId) => {
-    if (!unlocked && formatId !== "STANDARD") { setShowPaywall(true); return; }
-    if (formatId === "STANDARD") { setResult(originalResult); setActiveFormat("STANDARD"); return; }
-    setFormatLoading(true); setActiveFormat(formatId);
-    try {
-      const userMsg = `Voici le verdict: ${JSON.stringify(originalResult)}\n\n${FORMAT_PROMPTS[formatId]}`;
-      const data = await callAPI("Tu reformates des verdicts CUT/GO™. Réponds UNIQUEMENT en JSON valide.", userMsg);
-      setResult(data);
-    } catch(e) {}
+  const handleFormat=async(f)=>{
+    if(!unlocked&&f!=="STANDARD"){ onPaywall(); return; }
+    if(f==="STANDARD"){ setDisplayResult(result); setActiveFormat("STANDARD"); return; }
+    setFormatLoading(true); setActiveFormat(f);
+    try{
+      const res=await fetch("/api/decide",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({systemPrompt:"Tu reformates des verdicts CUT/GO™. Réponds UNIQUEMENT en JSON valide.",userMsg:`Voici le verdict: ${JSON.stringify(result)}\n\n${FORMAT_PROMPTS[f]}`})});
+      const d=await res.json(); if(!d.error) setDisplayResult(d);
+    }catch(e){}
     setFormatLoading(false);
   };
 
-  const handleCode = () => {
-    const code = codeInput.trim().toUpperCase();
-    if (code.startsWith(VALID_CODE_PREFIX) && code.length >= 10) {
-      setUnlockedLS(); setUnlocked(true); setShowPaywall(false); setCodeError("");
-    } else { setCodeError("Code invalide. Vérifie ton email Gumroad."); }
-  };
-
-  const openShare = () => {
-    if (!result||!mod) return;
-    const url = getShareURL(mod, result);
-    setShareURL(url || "");
-    setShareCopied(false);
-    setShowShareModal(true);
-  };
-
-  const copyShare = () => {
-    const text = shareURL || `CUT/GO™ ${mod?.label}\n\nVERDICT : ${result?.verdict}\nSIGNAL : ${result?.signal}\nACTION : ${result?.action}\n\ncutgo.org`;
-    navigator.clipboard.writeText(text).then(() => { setShareCopied(true); setTimeout(() => setShareCopied(false), 2000); });
-  };
-
-  const goHome = () => navigate("home");
-
-  const getStats = () => {
-    const h = history;
-    const total = h.length;
-    const byModule = {};
-    BASE_MODULES.forEach(m => byModule[m.id] = 0);
-    EXCLUSIVE_MODES.forEach(m => byModule[m.id] = 0);
-    let pos=0, neg=0, neu=0;
-    const posV = ["RESTE","INVESTIS","LANCE","PUBLIE","ACCEPTE","GO","ACCEPTABLE","SAIN"];
-    const negV = ["QUITTE","REFUSE","STOP","DANGER","MANIPULATION DÉTECTÉE"];
-    h.forEach(e => {
-      if (byModule[e.mod?.id] !== undefined) byModule[e.mod.id]++;
-      const v = e.result?.verdict||"";
-      if (posV.some(p => v.includes(p))) pos++;
-      else if (negV.some(n => v.includes(n))) neg++;
-      else neu++;
-    });
-    const fav = Object.entries(byModule).sort((a,b) => b[1]-a[1])[0];
-    const favMod = [...BASE_MODULES,...EXCLUSIVE_MODES].find(m => m.id === fav?.[0]);
-    return { total, byModule, pos, neg, neu, favMod, favCount:fav?.[1]||0 };
-  };
-
-  const stats = page === "profile" ? getStats() : null;
-
   return (
-    <div style={{ minHeight:"100vh", background:"#0A0A0A", fontFamily:"'Courier New',monospace", color:"#F0F0F0", paddingBottom: page !== "shared" ? 70 : 0 }}>
-      <style>{`*{box-sizing:border-box}textarea{resize:none}@keyframes pulse{0%,100%{opacity:.2;transform:scaleY(1)}50%{opacity:1;transform:scaleY(2.5)}}@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}.fade{animation:fadeIn .3s ease forwards}button:hover{opacity:.85!important}input::placeholder,textarea::placeholder{color:#333}::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:#333}`}</style>
-
-      {/* ── PAYWALL ── */}
-      {showPaywall && (
-        <div style={{ position:"fixed",inset:0,background:"rgba(0,0,0,.93)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:20 }}>
-          <div className="fade" style={{ maxWidth:440,width:"100%",border:"1px solid #222",padding:"36px 28px",background:"#0D0D0D" }}>
-            <div style={{ fontSize:10,letterSpacing:5,color:"#555",marginBottom:14 }}>ACCÈS LIMITÉ</div>
-            <div style={{ fontSize:24,fontWeight:900,letterSpacing:-1,marginBottom:8 }}>
-              {!unlocked&&count>=FREE_DECISIONS?`Tu as utilisé tes ${FREE_DECISIONS} décisions gratuites.`:"Mode exclusif Club."}
-            </div>
-            <div style={{ fontSize:13,color:"#666",marginBottom:22,lineHeight:1.6 }}>7 jours offerts. Ensuite 9€/mois.</div>
-            <div style={{ border:"1px solid #1A1A1A",padding:"14px 18px",marginBottom:20 }}>
-              {["Décisions illimitées","Historique complet de toutes tes décisions","3 modes exclusifs : URGENCE, HIGH RISK, MANIPULATION","Formats BRUTAL / RAPIDE / STRATÉGIQUE","6 scénarios par module"].map((f,i) => (
-                <div key={i} style={{ fontSize:12,color:"#888",marginBottom:5,display:"flex",gap:10 }}><span style={{ color:"#30D158" }}>✓</span>{f}</div>
-              ))}
-            </div>
-            <a href={GUMROAD_URL} target="_blank" rel="noopener noreferrer" style={{ display:"block",textDecoration:"none" }}>
-              <button style={{ ...btn("#F0F0F0","#000"),width:"100%",padding:"18px 0",fontSize:13 }}>⚡ COMMENCER — 7 JOURS OFFERTS</button>
-            </a>
-            <div style={{ textAlign:"center",margin:"18px 0 14px",fontSize:11,color:"#333",letterSpacing:2 }}>— OU —</div>
-            <div style={{ fontSize:10,letterSpacing:3,color:"#555",marginBottom:8 }}>J'AI DÉJÀ UN CODE D'ACCÈS</div>
-            <div style={{ display:"flex",gap:8 }}>
-              <input value={codeInput} onChange={e=>setCodeInput(e.target.value)} placeholder="CUTGO-XXXXXX" style={{ ...inp("#F0F0F0"),flex:1 }} onKeyDown={e=>e.key==="Enter"&&handleCode()} />
-              <button onClick={handleCode} style={{ ...btn("#222","#F0F0F0"),padding:"0 20px",border:"1px solid #333" }}>OK</button>
-            </div>
-            {codeError && <div style={{ color:"#FF2D55",fontSize:11,marginTop:8 }}>{codeError}</div>}
-            <button onClick={()=>setShowPaywall(false)} style={{ background:"none",border:"none",color:"#333",fontSize:11,cursor:"pointer",marginTop:18,fontFamily:"inherit",display:"block",width:"100%",textAlign:"center" }}>Retour</button>
-          </div>
-        </div>
-      )}
-
-      {/* ── SHARE MODAL ── */}
-      {showShareModal && (
-        <div style={{ position:"fixed",inset:0,background:"rgba(0,0,0,.93)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:20 }}>
-          <div className="fade" style={{ maxWidth:440,width:"100%",border:"1px solid #222",padding:"32px 24px",background:"#0D0D0D" }}>
-            <div style={{ fontSize:10,letterSpacing:5,color:"#555",marginBottom:14 }}>PARTAGER CE VERDICT</div>
-            <div style={{ border:"1px solid #1A1A1A",padding:"16px",marginBottom:14,background:"#0A0A0A" }}>
-              <div style={{ fontSize:9,color:"#444",marginBottom:8,letterSpacing:3 }}>APERÇU</div>
-              <div style={{ fontSize:22,fontWeight:900,color:VERDICT_COLORS[result?.verdict]||"#F0F0F0",marginBottom:6 }}>{result?.verdict}</div>
-              <div style={{ display:"inline-block",background:SIGNAL_COLORS[result?.signal]||"#555",color:"#000",fontSize:8,padding:"4px 9px",fontWeight:900,marginBottom:8 }}>{result?.signal}</div>
-              <div style={{ fontSize:12,color:"#666",lineHeight:1.5 }}>{result?.action}</div>
-            </div>
-            <button onClick={copyShare} style={{ ...btn("#F0F0F0","#000"),width:"100%",padding:"16px 0",marginBottom:12 }}>{shareCopied?"✓ LIEN COPIÉ":"COPIER LE LIEN"}</button>
-            <div style={{ fontSize:11,color:"#333",textAlign:"center",marginBottom:14 }}>Ton ami verra le verdict et pourra tester l'appli</div>
-            <button onClick={()=>setShowShareModal(false)} style={{ background:"none",border:"none",color:"#333",fontSize:11,cursor:"pointer",fontFamily:"inherit",display:"block",width:"100%",textAlign:"center" }}>Fermer</button>
-          </div>
-        </div>
-      )}
-
-      <div style={{ maxWidth:640,margin:"0 auto",padding:"28px 16px" }}>
-
-        {/* ── HEADER ── */}
-        {["home","history","profile"].includes(page) && (
-          <div style={{ textAlign:"center",marginBottom:28 }}>
-            <div style={{ fontSize:11,letterSpacing:6,color:"#333",marginBottom:5 }}>DECISION ENGINE</div>
-            <div style={{ fontSize:40,fontWeight:900,letterSpacing:-2,lineHeight:1 }}>CUT/GO™</div>
-            <div style={{ width:32,height:2,background:"#222",margin:"10px auto 0" }} />
-            {page==="home" && !unlocked && <div style={{ marginTop:10,fontSize:11,letterSpacing:2,color:"#444" }}>{remaining>0?`${remaining} décision${remaining>1?"s":""} gratuite${remaining>1?"s":""}` : "Essai terminé"}</div>}
-            {page==="home" && unlocked && <div style={{ marginTop:10,fontSize:9,letterSpacing:3,color:"#30D158" }}>✓ CLUB — ACCÈS COMPLET</div>}
-          </div>
-        )}
-
-        {/* ── PAGE SHARED ── */}
-        {page==="shared" && sharedData && (
-          <div className="fade">
-            <div style={{ textAlign:"center",marginBottom:22 }}>
-              <div style={{ fontSize:10,letterSpacing:6,color:"#333",marginBottom:5 }}>DECISION ENGINE</div>
-              <div style={{ fontSize:34,fontWeight:900,letterSpacing:-2,lineHeight:1 }}>CUT/GO™</div>
-              <div style={{ marginTop:8,fontSize:10,color:"#444",letterSpacing:2 }}>Verdict partagé · {sharedData.date}</div>
-            </div>
-            <div style={{ textAlign:"center",marginBottom:16 }}>
-              <span style={{ fontSize:18,color:sharedData.modColor }}>{sharedData.modIcon}</span>{" "}
-              <span style={{ fontWeight:700,letterSpacing:2,color:sharedData.modColor }}>{sharedData.modLabel}</span>
-            </div>
-            <div style={{ border:`1px solid ${VERDICT_COLORS[sharedData.result.verdict]||"#444"}22`,background:`${VERDICT_COLORS[sharedData.result.verdict]||"#444"}08`,padding:"22px",marginBottom:8,position:"relative" }}>
-              <div style={{ fontSize:9,letterSpacing:4,color:"#444",marginBottom:8 }}>VERDICT</div>
-              <div style={{ fontSize:42,fontWeight:900,color:VERDICT_COLORS[sharedData.result.verdict]||"#F0F0F0",lineHeight:1 }}>{sharedData.result.verdict}</div>
-              <div style={{ position:"absolute",top:16,right:16,background:SIGNAL_COLORS[sharedData.result.signal]||"#555",color:"#000",fontSize:8,letterSpacing:3,padding:"5px 9px",fontWeight:900 }}>{sharedData.result.signal}</div>
-            </div>
-            <div style={{ border:"1px solid #151515",padding:"16px 20px",marginBottom:8 }}>
-              <div style={{ fontSize:9,letterSpacing:4,color:"#444",marginBottom:10 }}>POURQUOI</div>
-              {sharedData.result.pourquoi.map((r,i) => <div key={i} style={{ fontSize:12,color:"#BBBBBB",marginBottom:7,paddingLeft:12,borderLeft:"2px solid #1E1E1E",lineHeight:1.5 }}>{r}</div>)}
-            </div>
-            <div style={{ background:`${sharedData.modColor}0D`,border:`1px solid ${sharedData.modColor}22`,padding:"16px 20px",marginBottom:20 }}>
-              <div style={{ fontSize:9,letterSpacing:4,color:sharedData.modColor,marginBottom:7 }}>ACTION IMMÉDIATE</div>
-              <div style={{ fontSize:13,fontWeight:700,color:"#F0F0F0",lineHeight:1.5 }}>{sharedData.result.action}</div>
-            </div>
-            <div style={{ border:"1px solid #222",padding:"20px",textAlign:"center",background:"#0D0D0D" }}>
-              <div style={{ fontSize:12,color:"#666",marginBottom:14,lineHeight:1.6 }}>Tu veux connaître ton verdict ?<br/>3 décisions gratuites sur CUT/GO™.</div>
-              <a href={window.location.href.split("#")[0]} style={{ textDecoration:"none" }}>
-                <button style={{ ...btn("#F0F0F0","#000"),padding:"12px 28px",fontSize:11 }}>⚡ ESSAYER GRATUITEMENT</button>
-              </a>
-            </div>
-          </div>
-        )}
-
-        {/* ── PAGE HOME ── */}
-        {page==="home" && (
-          <div className="fade">
-            <div style={{ fontSize:10,letterSpacing:4,color:"#333",marginBottom:10 }}>— MODULES</div>
-            <div style={{ display:"flex",flexDirection:"column",gap:7,marginBottom:24 }}>
-              {BASE_MODULES.map(m => (
-                <button key={m.id} onClick={()=>selectModule(m)} style={{ background:"transparent",border:"1px solid #1A1A1A",borderLeft:`3px solid ${m.color}`,color:"#F0F0F0",padding:"14px 18px",cursor:"pointer",textAlign:"left",display:"flex",alignItems:"center",gap:12,fontFamily:"inherit" }}
-                  onMouseEnter={e=>e.currentTarget.style.background="#111"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                  <span style={{ fontSize:16,color:m.color,width:22,textAlign:"center" }}>{m.icon}</span>
-                  <div style={{ flex:1 }}>
-                    <div style={{ fontSize:12,fontWeight:700,letterSpacing:2 }}>{m.label}</div>
-                    <div style={{ fontSize:10,color:"#444",marginTop:2 }}>{m.desc}</div>
-                  </div>
-                  <span style={{ fontSize:9,color:"#333",letterSpacing:1 }}>{SCENARIOS[m.id]?.length} scénarios</span>
-                  <span style={{ color:"#2A2A2A",marginLeft:6 }}>→</span>
-                </button>
-              ))}
-            </div>
-            <div style={{ fontSize:10,letterSpacing:4,color:"#333",marginBottom:10 }}>— MODES EXCLUSIFS CLUB</div>
-            <div style={{ display:"flex",flexDirection:"column",gap:7,marginBottom:22 }}>
-              {EXCLUSIVE_MODES.map(m => (
-                <button key={m.id} onClick={()=>selectModule({...m,clubOnly:true})} style={{ background:"transparent",border:"1px solid #1A1A1A",borderLeft:`3px solid ${unlocked?m.color:"#2A2A2A"}`,color:unlocked?"#F0F0F0":"#444",padding:"14px 18px",cursor:"pointer",textAlign:"left",display:"flex",alignItems:"center",gap:12,fontFamily:"inherit",opacity:unlocked?1:0.6 }}
-                  onMouseEnter={e=>e.currentTarget.style.background="#111"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                  <span style={{ fontSize:16,color:unlocked?m.color:"#333",width:22,textAlign:"center" }}>{unlocked?m.icon:"🔒"}</span>
-                  <div style={{ flex:1 }}>
-                    <div style={{ fontSize:12,fontWeight:700,letterSpacing:2 }}>{m.label}</div>
-                    <div style={{ fontSize:10,color:"#444",marginTop:2 }}>{m.desc}</div>
-                  </div>
-                  {!unlocked&&<span style={{ fontSize:9,color:"#333",letterSpacing:2 }}>CLUB</span>}
-                  {unlocked&&<span style={{ color:"#2A2A2A" }}>→</span>}
-                </button>
-              ))}
-            </div>
-            {!unlocked && (
-              <div style={{ border:"1px solid #151515",padding:"16px",textAlign:"center" }}>
-                <div style={{ fontSize:11,color:"#444",marginBottom:10 }}>Modes exclusifs + illimité + historique complet</div>
-                <button onClick={()=>setShowPaywall(true)} style={{ ...btn("#F0F0F0","#000"),padding:"10px 24px",fontSize:10 }}>⚡ 7 JOURS OFFERTS — 9€/MOIS</button>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ── PAGE FORM ── */}
-        {page==="form" && mod && (
-          <div className="fade">
-            <button onClick={goHome} style={{ background:"none",border:"none",color:"#333",fontSize:10,cursor:"pointer",letterSpacing:2,marginBottom:20,fontFamily:"inherit",padding:0 }}>← RETOUR</button>
-            <div style={{ display:"flex",alignItems:"center",gap:10,marginBottom:18,paddingBottom:16,borderBottom:"1px solid #151515" }}>
-              <span style={{ fontSize:18,color:mod.color }}>{mod.icon}</span>
-              <div style={{ flex:1 }}>
-                <div style={{ fontSize:14,fontWeight:700,letterSpacing:2,color:mod.color }}>{mod.label}</div>
-                <div style={{ fontSize:10,color:"#444" }}>{mod.desc}</div>
-              </div>
-              {SCENARIOS[mod.id] && (
-                <button onClick={()=>setShowScenarios(!showScenarios)} style={{ background:"transparent",border:"1px solid #222",color:"#555",padding:"7px 12px",fontSize:9,letterSpacing:2,cursor:"pointer",fontFamily:"inherit" }}>
-                  {showScenarios?"FERMER":`${SCENARIOS[mod.id].length} SCÉNARIOS`}
-                </button>
-              )}
-            </div>
-            {showScenarios && SCENARIOS[mod.id] && (
-              <div style={{ border:"1px solid #1A1A1A",marginBottom:16,background:"#0D0D0D" }}>
-                <div style={{ fontSize:9,letterSpacing:3,color:"#444",padding:"10px 14px",borderBottom:"1px solid #151515" }}>CHARGER UN SCÉNARIO</div>
-                {SCENARIOS[mod.id].map((s,i) => (
-                  <button key={i} onClick={()=>loadScenario(s)} style={{ width:"100%",background:"transparent",border:"none",borderBottom:"1px solid #151515",color:"#888",padding:"10px 14px",cursor:"pointer",textAlign:"left",fontFamily:"inherit",fontSize:11,display:"flex",alignItems:"center",gap:8 }}
-                    onMouseEnter={e=>e.currentTarget.style.background="#111"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                    <span style={{ color:mod.color }}>→</span>{s.label}
-                  </button>
-                ))}
-              </div>
-            )}
-            <div style={{ display:"flex",flexDirection:"column",gap:16 }}>
-              {[
-                { key:"situation",label:"SITUATION",ph:"Décris en 1 à 3 phrases...",multi:true },
-                { key:"optionA",label:"OPTION A",ph:"Choix principal" },
-                { key:"optionB",label:"OPTION B",ph:"Alternative" },
-                { key:"optionC",label:"OPTION C — optionnel",ph:"Troisième option si besoin" },
-                { key:"objectif",label:"OBJECTIF",ph:"Ce que tu veux vraiment" },
-                { key:"peur",label:"PEUR PRINCIPALE",ph:"Ce qui te bloque" },
-              ].map(f => (
-                <div key={f.key}>
-                  <label style={{ fontSize:9,letterSpacing:4,color:"#555",display:"block",marginBottom:7 }}>{f.label}</label>
-                  {f.multi
-                    ? <textarea value={form[f.key]} onChange={e=>setForm(p=>({...p,[f.key]:e.target.value}))} placeholder={f.ph} rows={3} style={inp(mod.color)} />
-                    : <input value={form[f.key]} onChange={e=>setForm(p=>({...p,[f.key]:e.target.value}))} placeholder={f.ph} style={inp(mod.color)} />
-                  }
-                </div>
-              ))}
-              <div>
-                <label style={{ fontSize:9,letterSpacing:4,color:"#555",display:"block",marginBottom:7 }}>URGENCE</label>
-                <div style={{ display:"flex",gap:7 }}>
-                  {["faible","moyenne","élevée"].map(u => (
-                    <button key={u} onClick={()=>setForm(p=>({...p,urgence:u}))} style={{ flex:1,padding:"9px 0",background:form.urgence===u?mod.color:"transparent",border:`1px solid ${form.urgence===u?mod.color:"#222"}`,color:form.urgence===u?"#000":"#444",fontSize:9,letterSpacing:2,cursor:"pointer",fontFamily:"inherit",fontWeight:form.urgence===u?700:400,textTransform:"uppercase" }}>{u}</button>
-                  ))}
-                </div>
-              </div>
-            </div>
-            {error && <div style={{ color:"#FF2D55",fontSize:11,marginTop:12 }}>{error}</div>}
-            <button onClick={handleSubmit} style={{ ...btn(mod.color,"#000"),width:"100%",marginTop:20,padding:"16px 0",fontSize:12 }}>ANALYSER →</button>
-          </div>
-        )}
-
-        {/* ── PAGE LOADING ── */}
-        {page==="loading" && (
-          <div style={{ textAlign:"center",padding:"70px 0" }}>
-            <div style={{ fontSize:10,letterSpacing:6,color:"#2A2A2A",marginBottom:24 }}>ANALYSE EN COURS</div>
-            <div style={{ display:"flex",gap:10,justifyContent:"center" }}>
-              {[0,1,2].map(i => <div key={i} style={{ width:5,height:5,background:mod?.color||"#F0F0F0",animation:`pulse 1.2s ${i*.2}s infinite` }} />)}
-            </div>
-          </div>
-        )}
-
-        {/* ── PAGE RESULT ── */}
-        {page==="result" && result && mod && (
-          <div className="fade">
-            <button onClick={()=>setPage("form")} style={{ background:"none",border:"none",color:"#333",fontSize:10,cursor:"pointer",letterSpacing:2,marginBottom:18,fontFamily:"inherit",padding:0 }}>← MODIFIER</button>
-            <div style={{ display:"flex",gap:5,marginBottom:14 }}>
-              {FORMATS.map(f => (
-                <button key={f.id} onClick={()=>handleFormat(f.id)} style={{ flex:1,padding:"7px 0",background:activeFormat===f.id?f.color:"transparent",border:`1px solid ${activeFormat===f.id?f.color:"#222"}`,color:activeFormat===f.id?"#000":"#444",fontSize:8,letterSpacing:1,cursor:"pointer",fontFamily:"inherit",fontWeight:activeFormat===f.id?700:400,opacity:(!unlocked&&f.id!=="STANDARD")?0.4:1 }}>
-                  {f.label}
-                  {!unlocked&&f.id!=="STANDARD"&&<span style={{ fontSize:7,display:"block",color:"#555" }}>CLUB</span>}
-                </button>
-              ))}
-            </div>
-            {formatLoading ? (
-              <div style={{ textAlign:"center",padding:"24px 0",fontSize:9,letterSpacing:4,color:"#333" }}>REFORMATAGE...</div>
-            ) : (
-              <>
-                <div style={{ border:`1px solid ${VERDICT_COLORS[result.verdict]||mod.color}22`,background:`${VERDICT_COLORS[result.verdict]||mod.color}08`,padding:"22px 20px",marginBottom:8,position:"relative" }}>
-                  <div style={{ fontSize:9,letterSpacing:4,color:"#444",marginBottom:8 }}>VERDICT</div>
-                  <div style={{ fontSize:44,fontWeight:900,letterSpacing:-2,color:VERDICT_COLORS[result.verdict]||mod.color,lineHeight:1 }}>{result.verdict}</div>
-                  <div style={{ position:"absolute",top:16,right:16,background:SIGNAL_COLORS[result.signal]||"#555",color:"#000",fontSize:8,letterSpacing:3,padding:"5px 9px",fontWeight:900 }}>{result.signal}</div>
-                </div>
-                <div style={{ border:"1px solid #151515",padding:"16px 20px",marginBottom:7 }}>
-                  <div style={{ fontSize:9,letterSpacing:4,color:"#444",marginBottom:10 }}>POURQUOI</div>
-                  {result.pourquoi.map((r,i) => <div key={i} style={{ fontSize:12,color:"#BBBBBB",marginBottom:7,paddingLeft:12,borderLeft:"2px solid #1E1E1E",lineHeight:1.5 }}>{r}</div>)}
-                </div>
-                <div style={{ background:`${mod.color}0D`,border:`1px solid ${mod.color}22`,padding:"16px 20px",marginBottom:7 }}>
-                  <div style={{ fontSize:9,letterSpacing:4,color:mod.color,marginBottom:7 }}>ACTION IMMÉDIATE</div>
-                  <div style={{ fontSize:13,fontWeight:700,color:"#F0F0F0",lineHeight:1.5 }}>{result.action}</div>
-                </div>
-                <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:7,marginBottom:16 }}>
-                  <div style={{ border:"1px solid #151515",padding:"12px 14px" }}>
-                    <div style={{ fontSize:8,letterSpacing:2,color:"#444",marginBottom:6 }}>RISQUE SI INACTION</div>
-                    <div style={{ fontSize:11,color:"#666",lineHeight:1.5 }}>{result.risque}</div>
-                  </div>
-                  <div style={{ border:"1px solid #151515",padding:"12px 14px" }}>
-                    <div style={{ fontSize:8,letterSpacing:2,color:"#444",marginBottom:6 }}>SI TU TE TROMPES</div>
-                    <div style={{ fontSize:11,color:"#666",lineHeight:1.5 }}>{result.consequence}</div>
-                  </div>
-                </div>
-                <div style={{ display:"flex",gap:7,marginBottom:7 }}>
-                  <button onClick={openShare} style={{ flex:1,...btn("transparent","#666"),border:"1px solid #1A1A1A" }}>PARTAGER</button>
-                  <button onClick={()=>selectModule(mod)} style={{ flex:1,...btn("transparent","#666"),border:"1px solid #1A1A1A" }}>NOUVELLE</button>
-                  <button onClick={goHome} style={{ flex:1,...btn(mod.color,"#000") }}>MODULES</button>
-                </div>
-                {!unlocked && count >= FREE_DECISIONS - 1 && (
-                  <div style={{ border:"1px solid #1A1A1A",padding:"12px 14px",textAlign:"center" }}>
-                    <div style={{ fontSize:11,color:"#555",marginBottom:7 }}>{count>=FREE_DECISIONS?"C'était ta dernière décision gratuite.":"Plus qu'une décision gratuite."}</div>
-                    <button onClick={()=>setShowPaywall(true)} style={{ ...btn("#F0F0F0","#000"),padding:"9px 18px",fontSize:9 }}>⚡ CONTINUER — 7 JOURS OFFERTS</button>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-        )}
-
-        {/* ── PAGE HISTORY ── */}
-        {page==="history" && !selectedEntry && (
-          <div className="fade">
-            <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:18 }}>
-              <div style={{ fontSize:10,letterSpacing:4,color:"#555" }}>HISTORIQUE</div>
-              <div style={{ fontSize:11,color:"#444" }}>{history.length} décision{history.length!==1?"s":""}</div>
-            </div>
-            {history.length===0 ? (
-              <div style={{ textAlign:"center",padding:"50px 0" }}>
-                <div style={{ fontSize:10,color:"#333",letterSpacing:2,marginBottom:10 }}>AUCUNE DÉCISION</div>
-                <div style={{ fontSize:11,color:"#444",marginBottom:16 }}>Tes décisions apparaîtront ici après analyse.</div>
-                <button onClick={goHome} style={{ ...btn("transparent","#666"),border:"1px solid #222",padding:"9px 18px",fontSize:9 }}>FAIRE UNE DÉCISION</button>
-              </div>
-            ) : (
-              <div style={{ display:"flex",flexDirection:"column",gap:7 }}>
-                {history.map((h,i) => (
-                  <button key={h.id||i} onClick={()=>setSelectedEntry(h)} style={{ background:"transparent",border:"1px solid #1A1A1A",borderLeft:`3px solid ${h.mod?.color||"#444"}`,padding:"12px 14px",cursor:"pointer",textAlign:"left",fontFamily:"inherit",display:"flex",alignItems:"center",gap:10 }}
-                    onMouseEnter={e=>e.currentTarget.style.background="#111"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                    <span style={{ fontSize:14,color:h.mod?.color||"#444" }}>{h.mod?.icon||"◎"}</span>
-                    <div style={{ flex:1 }}>
-                      <div style={{ display:"flex",alignItems:"center",gap:7,marginBottom:3 }}>
-                        <span style={{ fontSize:11,fontWeight:700,color:VERDICT_COLORS[h.result?.verdict]||"#F0F0F0" }}>{h.result?.verdict}</span>
-                        <span style={{ fontSize:8,background:SIGNAL_COLORS[h.result?.signal]||"#555",color:"#000",padding:"2px 6px",fontWeight:700 }}>{h.result?.signal}</span>
-                      </div>
-                      <div style={{ fontSize:9,color:"#555",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:260 }}>{h.form?.situation}</div>
-                    </div>
-                    <div style={{ textAlign:"right" }}>
-                      <div style={{ fontSize:8,color:"#333" }}>{h.mod?.label}</div>
-                      <div style={{ fontSize:8,color:"#2A2A2A",marginTop:2 }}>{new Date(h.date).toLocaleDateString("fr-FR")}</div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ── PAGE HISTORY DETAIL ── */}
-        {page==="history" && selectedEntry && (
-          <div className="fade">
-            <button onClick={()=>setSelectedEntry(null)} style={{ background:"none",border:"none",color:"#333",fontSize:10,cursor:"pointer",letterSpacing:2,marginBottom:18,fontFamily:"inherit",padding:0 }}>← HISTORIQUE</button>
-            <div style={{ display:"flex",alignItems:"center",gap:8,marginBottom:14,paddingBottom:12,borderBottom:"1px solid #151515" }}>
-              <span style={{ fontSize:14,color:selectedEntry.mod?.color }}>{selectedEntry.mod?.icon}</span>
-              <div style={{ flex:1 }}>
-                <div style={{ fontSize:11,fontWeight:700,letterSpacing:2,color:selectedEntry.mod?.color }}>{selectedEntry.mod?.label}</div>
-                <div style={{ fontSize:9,color:"#444" }}>{new Date(selectedEntry.date).toLocaleDateString("fr-FR",{weekday:"long",year:"numeric",month:"long",day:"numeric"})}</div>
-              </div>
-            </div>
-            <div style={{ border:"1px solid #151515",padding:"11px 14px",marginBottom:8,background:"#0D0D0D" }}>
-              <div style={{ fontSize:8,letterSpacing:3,color:"#444",marginBottom:7 }}>SITUATION</div>
-              <div style={{ fontSize:11,color:"#888",lineHeight:1.5 }}>{selectedEntry.form?.situation}</div>
-              {selectedEntry.form?.optionA && <div style={{ fontSize:10,color:"#555",marginTop:7 }}>A: {selectedEntry.form.optionA}</div>}
-              {selectedEntry.form?.optionB && <div style={{ fontSize:10,color:"#555",marginTop:3 }}>B: {selectedEntry.form.optionB}</div>}
-              {selectedEntry.form?.optionC && <div style={{ fontSize:10,color:"#555",marginTop:3 }}>C: {selectedEntry.form.optionC}</div>}
-            </div>
-            <div style={{ border:`1px solid ${VERDICT_COLORS[selectedEntry.result?.verdict]||"#444"}22`,background:`${VERDICT_COLORS[selectedEntry.result?.verdict]||"#444"}08`,padding:"18px 16px",marginBottom:7,position:"relative" }}>
-              <div style={{ fontSize:8,letterSpacing:4,color:"#444",marginBottom:7 }}>VERDICT</div>
-              <div style={{ fontSize:32,fontWeight:900,color:VERDICT_COLORS[selectedEntry.result?.verdict]||"#F0F0F0",lineHeight:1 }}>{selectedEntry.result?.verdict}</div>
-              <div style={{ position:"absolute",top:12,right:12,background:SIGNAL_COLORS[selectedEntry.result?.signal]||"#555",color:"#000",fontSize:7,letterSpacing:2,padding:"4px 7px",fontWeight:900 }}>{selectedEntry.result?.signal}</div>
-            </div>
-            <div style={{ background:`${selectedEntry.mod?.color}0D`,border:`1px solid ${selectedEntry.mod?.color}22`,padding:"13px 16px",marginBottom:7 }}>
-              <div style={{ fontSize:8,letterSpacing:4,color:selectedEntry.mod?.color,marginBottom:6 }}>ACTION</div>
-              <div style={{ fontSize:11,fontWeight:700,color:"#F0F0F0",lineHeight:1.5 }}>{selectedEntry.result?.action}</div>
-            </div>
-            <div style={{ border:"1px solid #151515",padding:"12px 14px" }}>
-              <div style={{ fontSize:8,letterSpacing:3,color:"#444",marginBottom:8 }}>POURQUOI</div>
-              {selectedEntry.result?.pourquoi?.map((r,i) => <div key={i} style={{ fontSize:11,color:"#666",marginBottom:6,paddingLeft:10,borderLeft:"2px solid #1E1E1E",lineHeight:1.5 }}>{r}</div>)}
-            </div>
-          </div>
-        )}
-
-        {/* ── PAGE PROFILE ── */}
-        {page==="profile" && stats && (
-          <div className="fade">
-            <div style={{ fontSize:10,letterSpacing:4,color:"#555",marginBottom:18 }}>PROFIL</div>
-            <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:20 }}>
-              {[{l:"DÉCISIONS",v:stats.total},{l:"POSITIVES",v:stats.pos,c:"#30D158"},{l:"NÉGATIVES",v:stats.neg,c:"#FF2D55"}].map((s,i) => (
-                <div key={i} style={{ border:"1px solid #1A1A1A",padding:"14px 10px",textAlign:"center" }}>
-                  <div style={{ fontSize:24,fontWeight:900,color:s.c||"#F0F0F0" }}>{s.v}</div>
-                  <div style={{ fontSize:7,letterSpacing:2,color:"#444",marginTop:3 }}>{s.l}</div>
-                </div>
-              ))}
-            </div>
-            {stats.favMod && stats.favCount > 0 && (
-              <div style={{ border:"1px solid #1A1A1A",padding:"14px",marginBottom:18,display:"flex",alignItems:"center",gap:10 }}>
-                <span style={{ fontSize:20,color:stats.favMod.color }}>{stats.favMod.icon}</span>
-                <div>
-                  <div style={{ fontSize:8,letterSpacing:3,color:"#444",marginBottom:3 }}>MODULE PRÉFÉRÉ</div>
-                  <div style={{ fontSize:12,fontWeight:700,color:stats.favMod.color }}>{stats.favMod.label}</div>
-                  <div style={{ fontSize:9,color:"#555" }}>{stats.favCount} décision{stats.favCount>1?"s":""}</div>
-                </div>
-              </div>
-            )}
-            <div style={{ marginBottom:18 }}>
-              <div style={{ fontSize:8,letterSpacing:3,color:"#444",marginBottom:10 }}>RÉPARTITION</div>
-              {BASE_MODULES.map(m => {
-                const c = stats.byModule[m.id]||0;
-                const pct = stats.total>0 ? Math.round((c/stats.total)*100) : 0;
-                return (
-                  <div key={m.id} style={{ marginBottom:9 }}>
-                    <div style={{ display:"flex",justifyContent:"space-between",marginBottom:3 }}>
-                      <div style={{ fontSize:9,color:"#666",display:"flex",alignItems:"center",gap:5 }}><span style={{ color:m.color }}>{m.icon}</span>{m.label}</div>
-                      <div style={{ fontSize:9,color:"#444" }}>{c}</div>
-                    </div>
-                    <div style={{ height:3,background:"#1A1A1A",borderRadius:2 }}>
-                      <div style={{ height:"100%",width:`${pct}%`,background:m.color,borderRadius:2 }} />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-            <div style={{ border:`1px solid ${unlocked?"#30D158":"#1A1A1A"}`,padding:"14px",textAlign:"center" }}>
-              {unlocked ? (
-                <>
-                  <div style={{ fontSize:10,color:"#30D158",marginBottom:4,letterSpacing:2 }}>✓ MEMBRE CLUB ACTIF</div>
-                  <div style={{ fontSize:10,color:"#444" }}>Décisions illimitées · Modes exclusifs</div>
-                </>
-              ) : (
-                <>
-                  <div style={{ fontSize:10,color:"#555",marginBottom:9 }}>Passe au Club pour l'accès complet</div>
-                  <button onClick={()=>setShowPaywall(true)} style={{ ...btn("#F0F0F0","#000"),padding:"9px 18px",fontSize:9 }}>⚡ 7 JOURS OFFERTS — 9€/MOIS</button>
-                </>
-              )}
-            </div>
-          </div>
-        )}
-
-      </div>
-
-      {/* ── BOTTOM NAV ── */}
-      {page !== "shared" && (
-        <div style={{ position:"fixed",bottom:0,left:0,right:0,background:"#0A0A0A",borderTop:"1px solid #1A1A1A",display:"flex",zIndex:100 }}>
-          {[{id:"home",label:"MODULES",icon:"◎"},{id:"history",label:"HISTORIQUE",icon:"◷"},{id:"profile",label:"PROFIL",icon:"◈"}].map(tab => {
-            const isActive = tab.id==="home" ? ["home","form","loading","result"].includes(page) : page===tab.id;
-            return (
-              <button key={tab.id} onClick={()=>{ tab.id==="home"?goHome():navigate(tab.id); }} style={{ flex:1,padding:"11px 0",background:"transparent",border:"none",color:isActive?"#F0F0F0":"#444",cursor:"pointer",fontFamily:"inherit",fontSize:8,letterSpacing:2,display:"flex",flexDirection:"column",alignItems:"center",gap:3 }}>
-                <span style={{ fontSize:14 }}>{tab.icon}</span>{tab.label}
+    <>
+      {showShare && <ShareModal mod={mod} result={result} onClose={()=>setShowShare(false)}/>}
+      <div style={{display:"flex",flexDirection:"column",gap:9}}>
+        {/* Format buttons */}
+        <div style={{display:"flex",gap:6}}>
+          {["STANDARD","BRUTAL","RAPIDE","STRATÉGIQUE"].map(f=>{
+            const active=activeFormat===f;
+            const colors={STANDARD:TEXT,BRUTAL:"#FF453A",RAPIDE:"#FFD60A","STRATÉGIQUE":"#0A84FF"};
+            return(
+              <button key={f} onClick={()=>handleFormat(f)} style={{flex:1,padding:"7px 0",background:active?colors[f]:"transparent",border:`1px solid ${active?colors[f]:BORDER}`,borderRadius:8,color:active?(f==="STANDARD"?"#000":f==="RAPIDE"?"#000":"#fff"):MUTED,fontFamily:MONO,fontSize:7,letterSpacing:1,cursor:"pointer",fontWeight:active?700:400,opacity:(!unlocked&&f!=="STANDARD")?0.4:1}}>
+                {f}{!unlocked&&f!=="STANDARD"&&<span style={{display:"block",fontSize:6,color:MUTED,letterSpacing:0}}>CLUB</span>}
               </button>
             );
           })}
         </div>
+        {formatLoading?(
+          <div style={{textAlign:"center",padding:"30px 0"}}><div style={{fontFamily:MONO,fontSize:9,letterSpacing:4,color:MUTED}}>REFORMATAGE...</div></div>
+        ):(
+          <>
+            <Crd accent={vc} hi>
+              <Lbl color={sc}>— {displayResult.signal}</Lbl>
+              <div style={{fontFamily:SANS,fontSize:60,fontWeight:800,color:vc,letterSpacing:-4,lineHeight:.85,marginBottom:14}}>{displayResult.verdict}</div>
+              <div style={{height:2,background:`linear-gradient(90deg,${vc},transparent)`,borderRadius:1}}/>
+            </Crd>
+            <Crd>
+              <Lbl>Pourquoi</Lbl>
+              <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                {displayResult.pourquoi.map((r,i)=>(
+                  <div key={i} style={{display:"flex",gap:12,alignItems:"flex-start"}}>
+                    <div style={{fontFamily:MONO,fontSize:9,color:mod.color,minWidth:20,paddingTop:3,letterSpacing:1}}>0{i+1}</div>
+                    <div style={{fontFamily:SANS,fontSize:13,color:TEXT,lineHeight:1.55,opacity:.85}}>{r}</div>
+                  </div>
+                ))}
+              </div>
+            </Crd>
+            <div style={{background:mod.color,borderRadius:16,padding:"18px"}}>
+              <Lbl color="rgba(0,0,0,0.5)">Action immédiate</Lbl>
+              <div style={{fontFamily:SANS,fontSize:15,fontWeight:700,color:"#000",lineHeight:1.5}}>{displayResult.action}</div>
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:9}}>
+              {[{l:"Risque si inaction",v:displayResult.risque},{l:"Si tu te trompes",v:displayResult.consequence}].map((s,i)=>(
+                <Crd key={i}><Lbl>{s.l}</Lbl><div style={{fontFamily:SANS,fontSize:11,color:MUTED,lineHeight:1.5}}>{s.v}</div></Crd>
+              ))}
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
+              <button onClick={()=>setShowShare(true)} style={{background:CARD2,border:`1px solid ${BORDER}`,borderRadius:12,color:MUTED,padding:"13px 0",fontFamily:MONO,fontSize:9,letterSpacing:2,cursor:"pointer",fontWeight:700}}>PARTAGER</button>
+              <button onClick={onNew} style={{background:CARD2,border:`1px solid ${BORDER}`,borderRadius:12,color:MUTED,padding:"13px 0",fontFamily:MONO,fontSize:9,letterSpacing:2,cursor:"pointer",fontWeight:700}}>NOUVELLE</button>
+              <button onClick={onHome} style={{background:mod.color,border:"none",borderRadius:12,color:"#000",padding:"13px 0",fontFamily:MONO,fontSize:9,letterSpacing:2,cursor:"pointer",fontWeight:700}}>MODULES</button>
+            </div>
+            {!unlocked&&(
+              <div style={{background:CARD2,border:`1px solid ${BORDER}`,borderRadius:14,padding:"14px 16px",textAlign:"center"}}>
+                <div style={{fontFamily:SANS,fontSize:12,color:MUTED,marginBottom:10}}>Modes exclusifs + formats avancés disponibles dans le Club.</div>
+                <button onClick={onPaywall} style={{background:TEXT,border:"none",borderRadius:10,color:"#000",padding:"10px 20px",fontFamily:MONO,fontSize:9,fontWeight:900,letterSpacing:2,cursor:"pointer"}}>⚡ 7 JOURS OFFERTS</button>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </>
+  );
+}
+
+// ─── FORMULAIRE ───────────────────────────────────────────────
+function FormScreen({ mod, onResult, onPaywall, unlocked, count }) {
+  const [form,setForm]=useState({situation:"",optionA:"",optionB:"",optionC:"",urgence:"moyenne",objectif:"",peur:""});
+  const [loading,setLoading]=useState(false);
+  const [error,setError]=useState("");
+  const [showScenarios,setShowScenarios]=useState(false);
+  const set=(k,v)=>setForm(f=>({...f,[k]:v}));
+  const inp={width:"100%",background:CARD2,border:`1px solid ${BORDER}`,borderRadius:10,color:TEXT,padding:"12px 14px",fontFamily:SANS,fontSize:13,outline:"none",boxSizing:"border-box"};
+
+  const load=(s)=>{ setForm(f=>({...f,situation:s.situation,optionA:s.optionA,optionB:s.optionB,urgence:s.urgence,objectif:s.objectif,peur:s.peur})); setShowScenarios(false); };
+
+  const submit=async()=>{
+    if(!form.situation||!form.optionA||!form.optionB||!form.objectif||!form.peur){ setError("Remplis tous les champs."); return; }
+    if(!unlocked&&count>=FREE_DECISIONS){ onPaywall(); return; }
+    setError(""); setLoading(true);
+    const msg=`SITUATION : ${form.situation}\nOPTION A : ${form.optionA}\nOPTION B : ${form.optionB}${form.optionC?`\nOPTION C : ${form.optionC}`:""}\nURGENCE : ${form.urgence}\nOBJECTIF : ${form.objectif}\nPEUR PRINCIPALE : ${form.peur}`;
+    try{
+      const res=await fetch("/api/decide",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({systemPrompt:mod.systemPrompt,userMsg:msg})});
+      const d=await res.json(); if(d.error) throw new Error(d.error);
+      addCount(); onResult(d,{...form});
+    }catch(e){ setError("Erreur. Réessaie."); }
+    setLoading(false);
+  };
+
+  if(loading) return(
+    <div style={{textAlign:"center",padding:"80px 0"}}>
+      <div style={{fontFamily:MONO,fontSize:9,letterSpacing:6,color:MUTED,marginBottom:24}}>ANALYSE EN COURS</div>
+      <div style={{display:"flex",gap:10,justifyContent:"center"}}>
+        {[0,1,2].map(i=><div key={i} style={{width:7,height:7,borderRadius:"50%",background:mod.color,animation:`p 1.2s ${i*.2}s infinite`}}/>)}
+      </div>
+      <style>{`@keyframes p{0%,100%{opacity:.2;transform:scale(1)}50%{opacity:1;transform:scale(1.4)}}`}</style>
+    </div>
+  );
+
+  return(
+    <div>
+      <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:20,paddingBottom:16,borderBottom:`1px solid ${BORDER}`}}>
+        <div style={{width:44,height:44,borderRadius:12,background:`${mod.color}18`,border:`1px solid ${mod.color}25`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>{mod.icon}</div>
+        <div style={{flex:1}}>
+          <div style={{fontFamily:MONO,fontSize:12,fontWeight:700,letterSpacing:2,color:TEXT,marginBottom:3}}>{mod.label}</div>
+          <div style={{fontFamily:MONO,fontSize:9,color:MUTED,letterSpacing:1}}>{mod.desc}</div>
+        </div>
+        {SCENARIOS[mod.id]&&(
+          <button onClick={()=>setShowScenarios(!showScenarios)} style={{background:"transparent",border:`1px solid ${BORDER}`,borderRadius:8,color:MUTED,padding:"7px 12px",fontFamily:MONO,fontSize:9,letterSpacing:2,cursor:"pointer"}}>
+            {showScenarios?"FERMER":`${SCENARIOS[mod.id].length} SCÉNARIOS`}
+          </button>
+        )}
+      </div>
+      {showScenarios&&SCENARIOS[mod.id]&&(
+        <div style={{background:CARD,border:`1px solid ${BORDER}`,borderRadius:14,marginBottom:16,overflow:"hidden"}}>
+          <div style={{fontFamily:MONO,fontSize:9,letterSpacing:3,color:MUTED,padding:"10px 14px",borderBottom:`1px solid ${BORDER}`}}>CHARGER UN SCÉNARIO</div>
+          {SCENARIOS[mod.id].map((s,i)=>(
+            <button key={i} onClick={()=>load(s)} style={{width:"100%",background:"transparent",border:"none",borderBottom:i<SCENARIOS[mod.id].length-1?`1px solid ${BORDER}`:"none",color:MUTED,padding:"11px 14px",cursor:"pointer",textAlign:"left",fontFamily:SANS,fontSize:12,display:"flex",alignItems:"center",gap:8}}
+              onMouseEnter={e=>e.currentTarget.style.background=CARD2} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+              <span style={{color:mod.color,fontFamily:MONO,fontSize:9}}>→</span>{s.label}
+            </button>
+          ))}
+        </div>
       )}
+      <div style={{display:"flex",flexDirection:"column",gap:14}}>
+        {[{k:"situation",l:"Situation",ph:"Décris en 1 à 3 phrases...",m:true},{k:"optionA",l:"Option A",ph:"Choix principal"},{k:"optionB",l:"Option B",ph:"Alternative"},{k:"optionC",l:"Option C — optionnel",ph:"Troisième option si besoin"},{k:"objectif",l:"Objectif",ph:"Ce que tu veux vraiment"},{k:"peur",l:"Peur principale",ph:"Ce qui te bloque"}].map(f=>(
+          <div key={f.k}>
+            <Lbl mb={7}>{f.l}</Lbl>
+            {f.m?<textarea value={form[f.k]} onChange={e=>set(f.k,e.target.value)} placeholder={f.ph} rows={3} style={{...inp,resize:"none"}}/>:<input value={form[f.k]} onChange={e=>set(f.k,e.target.value)} placeholder={f.ph} style={inp}/>}
+          </div>
+        ))}
+        <div>
+          <Lbl mb={9}>Urgence</Lbl>
+          <div style={{display:"flex",gap:8}}>
+            {["faible","moyenne","élevée"].map(u=>(
+              <button key={u} onClick={()=>set("urgence",u)} style={{flex:1,padding:"10px 0",background:form.urgence===u?mod.color:"transparent",border:`1px solid ${form.urgence===u?mod.color:BORDER}`,borderRadius:10,color:form.urgence===u?"#000":MUTED,fontFamily:MONO,fontSize:9,letterSpacing:1,cursor:"pointer",fontWeight:form.urgence===u?700:400,textTransform:"uppercase"}}>{u}</button>
+            ))}
+          </div>
+        </div>
+      </div>
+      {error&&<div style={{fontFamily:MONO,color:"#FF453A",fontSize:10,marginTop:12,letterSpacing:1}}>{error}</div>}
+      <button onClick={submit} style={{width:"100%",marginTop:20,padding:"16px 0",background:mod.color,border:"none",borderRadius:14,color:"#000",fontFamily:MONO,fontSize:11,fontWeight:900,letterSpacing:4,cursor:"pointer"}}>ANALYSER →</button>
+    </div>
+  );
+}
+
+// ─── ACCUEIL ──────────────────────────────────────────────────
+function HomeScreen({ onSelect, unlocked, onPaywall, count }) {
+  const remaining=Math.max(0,FREE_DECISIONS-count);
+  return(
+    <div>
+      {!unlocked&&(
+        <div style={{background:CARD,border:`1px solid ${BORDER}`,borderRadius:14,padding:"12px 16px",marginBottom:18,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+          <div style={{fontFamily:MONO,fontSize:9,letterSpacing:2,color:MUTED}}>{remaining>0?`${remaining} décision${remaining>1?"s":""} gratuite${remaining>1?"s":""}`:0+" décisions restantes"}</div>
+          <button onClick={onPaywall} style={{background:TEXT,border:"none",borderRadius:8,color:"#000",padding:"7px 14px",fontFamily:MONO,fontSize:9,fontWeight:900,letterSpacing:2,cursor:"pointer"}}>CLUB →</button>
+        </div>
+      )}
+      {unlocked&&(
+        <div style={{background:`rgba(48,209,88,0.08)`,border:`1px solid rgba(48,209,88,0.2)`,borderRadius:14,padding:"10px 16px",marginBottom:18,display:"flex",alignItems:"center",gap:8}}>
+          <div style={{width:6,height:6,borderRadius:"50%",background:"#30D158"}}/>
+          <div style={{fontFamily:MONO,fontSize:9,letterSpacing:2,color:"#30D158"}}>CLUB ACTIF — ACCÈS COMPLET</div>
+        </div>
+      )}
+      <Lbl mb={12}>— Modules</Lbl>
+      <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:24}}>
+        {BASE_MODULES.map(m=>(
+          <button key={m.id} onClick={()=>onSelect(m)} style={{background:CARD,border:`1px solid ${BORDER}`,borderRadius:16,padding:"16px",cursor:"pointer",textAlign:"left",fontFamily:SANS,display:"flex",alignItems:"center",gap:14}}
+            onMouseEnter={e=>e.currentTarget.style.background=CARD2} onMouseLeave={e=>e.currentTarget.style.background=CARD}>
+            <div style={{width:44,height:44,borderRadius:12,background:`${m.color}18`,border:`1px solid ${m.color}25`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>{m.icon}</div>
+            <div style={{flex:1}}>
+              <div style={{fontFamily:MONO,fontSize:11,fontWeight:700,letterSpacing:2,color:TEXT,marginBottom:3}}>{m.label}</div>
+              <div style={{fontFamily:SANS,fontSize:11,color:MUTED}}>{m.desc}</div>
+            </div>
+            <div style={{display:"flex",alignItems:"center",gap:8}}>
+              <div style={{fontFamily:MONO,fontSize:8,color:"#2A2A2A",letterSpacing:1}}>{SCENARIOS[m.id]?.length} scén.</div>
+              <div style={{width:3,height:30,borderRadius:2,background:m.color,opacity:.5}}/>
+            </div>
+          </button>
+        ))}
+      </div>
+      <Lbl mb={12}>— Modes exclusifs Club</Lbl>
+      <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16}}>
+        {EXCLUSIVE_MODES.map(m=>(
+          <button key={m.id} onClick={()=>{ if(!unlocked){onPaywall();}else{onSelect(m);} }} style={{background:CARD,border:`1px solid ${BORDER}`,borderRadius:16,padding:"16px",cursor:"pointer",textAlign:"left",fontFamily:SANS,display:"flex",alignItems:"center",gap:14,opacity:unlocked?1:0.45}}
+            onMouseEnter={e=>e.currentTarget.style.background=CARD2} onMouseLeave={e=>e.currentTarget.style.background=CARD}>
+            <div style={{width:44,height:44,borderRadius:12,background:unlocked?`${m.color}18`:CARD2,display:"flex",alignItems:"center",justifyContent:"center",fontSize:unlocked?18:16,flexShrink:0}}>{unlocked?m.icon:"🔒"}</div>
+            <div style={{flex:1}}>
+              <div style={{fontFamily:MONO,fontSize:11,fontWeight:700,letterSpacing:2,color:unlocked?TEXT:MUTED,marginBottom:3}}>{m.label}</div>
+              <div style={{fontFamily:SANS,fontSize:11,color:"#444"}}>{m.desc}</div>
+            </div>
+            {!unlocked&&<div style={{fontFamily:MONO,fontSize:8,color:"#444",letterSpacing:2,background:CARD2,padding:"4px 8px",borderRadius:6}}>CLUB</div>}
+          </button>
+        ))}
+      </div>
+      {!unlocked&&(
+        <div style={{background:`linear-gradient(135deg,${CARD2},${CARD})`,border:`1px solid ${BORDER}`,borderRadius:16,padding:"20px",textAlign:"center"}}>
+          <Lbl mb={10}>Décisions illimitées + modes exclusifs</Lbl>
+          <button onClick={onPaywall} style={{background:TEXT,border:"none",borderRadius:12,color:"#000",padding:"13px 26px",fontFamily:MONO,fontSize:10,fontWeight:900,letterSpacing:3,cursor:"pointer"}}>⚡ 7 JOURS OFFERTS — 9€/MOIS</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── HISTORIQUE ───────────────────────────────────────────────
+function HistoryScreen({ history }) {
+  const [selected,setSelected]=useState(null);
+  if(selected){
+    const vc=VC[selected.result?.verdict]||selected.mod?.color||"#F0F0F6";
+    const sc=SC[selected.result?.signal]||"#888";
+    return(
+      <div>
+        <button onClick={()=>setSelected(null)} style={{background:"none",border:"none",color:selected.mod?.color||MUTED,fontFamily:MONO,fontSize:9,letterSpacing:2,cursor:"pointer",padding:0,marginBottom:18}}>← HISTORIQUE</button>
+        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:18,paddingBottom:14,borderBottom:`1px solid ${BORDER}`}}>
+          <div style={{width:40,height:40,borderRadius:10,background:`${selected.mod?.color||"#444"}18`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>{selected.mod?.icon||"◎"}</div>
+          <div>
+            <div style={{fontFamily:MONO,fontSize:11,fontWeight:700,letterSpacing:2,color:selected.mod?.color||TEXT}}>{selected.mod?.label}</div>
+            <div style={{fontFamily:MONO,fontSize:9,color:MUTED}}>{new Date(selected.date).toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}</div>
+          </div>
+        </div>
+        {/* Situation */}
+        <Crd style={{marginBottom:9}}>
+          <Lbl>Situation</Lbl>
+          <div style={{fontFamily:SANS,fontSize:12,color:MUTED,lineHeight:1.5,marginBottom:selected.form?.optionA?10:0}}>{selected.form?.situation}</div>
+          {selected.form?.optionA&&<div style={{fontFamily:MONO,fontSize:10,color:"#444",marginTop:6}}>A : {selected.form.optionA}</div>}
+          {selected.form?.optionB&&<div style={{fontFamily:MONO,fontSize:10,color:"#444",marginTop:3}}>B : {selected.form.optionB}</div>}
+          {selected.form?.optionC&&<div style={{fontFamily:MONO,fontSize:10,color:"#444",marginTop:3}}>C : {selected.form.optionC}</div>}
+        </Crd>
+        {/* Verdict */}
+        <Crd accent={vc} hi style={{marginBottom:9}}>
+          <Lbl color={sc}>— {selected.result?.signal}</Lbl>
+          <div style={{fontFamily:SANS,fontSize:48,fontWeight:800,color:vc,letterSpacing:-3,lineHeight:.85,marginBottom:12}}>{selected.result?.verdict}</div>
+          <div style={{height:2,background:`linear-gradient(90deg,${vc},transparent)`,borderRadius:1}}/>
+        </Crd>
+        {/* Pourquoi */}
+        <Crd style={{marginBottom:9}}>
+          <Lbl>Pourquoi</Lbl>
+          {selected.result?.pourquoi?.map((r,i)=>(
+            <div key={i} style={{display:"flex",gap:12,marginBottom:i===0?8:0}}>
+              <div style={{fontFamily:MONO,fontSize:9,color:selected.mod?.color||TEXT,minWidth:20,paddingTop:3}}>0{i+1}</div>
+              <div style={{fontFamily:SANS,fontSize:12,color:TEXT,lineHeight:1.55,opacity:.85}}>{r}</div>
+            </div>
+          ))}
+        </Crd>
+        {/* Action */}
+        <div style={{background:selected.mod?.color||TEXT,borderRadius:16,padding:"16px 18px",marginBottom:9}}>
+          <Lbl color="rgba(0,0,0,0.5)">Action immédiate</Lbl>
+          <div style={{fontFamily:SANS,fontSize:13,fontWeight:700,color:"#000",lineHeight:1.5}}>{selected.result?.action}</div>
+        </div>
+        {/* Risque + Conséquence */}
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:9}}>
+          {[{l:"Risque si inaction",v:selected.result?.risque},{l:"Si tu te trompes",v:selected.result?.consequence}].map((s,i)=>(
+            <Crd key={i}><Lbl>{s.l}</Lbl><div style={{fontFamily:SANS,fontSize:11,color:MUTED,lineHeight:1.5}}>{s.v}</div></Crd>
+          ))}
+        </div>
+      </div>
+    );
+  }
+  return(
+    <div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18}}>
+        <Lbl mb={0}>— Historique</Lbl>
+        <div style={{fontFamily:MONO,fontSize:9,color:MUTED}}>{history.length} décision{history.length!==1?"s":""}</div>
+      </div>
+      {history.length===0?(
+        <div style={{textAlign:"center",padding:"60px 0"}}>
+          <div style={{fontFamily:MONO,fontSize:9,letterSpacing:4,color:"#2A2A2A",marginBottom:10}}>AUCUNE DÉCISION</div>
+          <div style={{fontFamily:SANS,fontSize:12,color:MUTED}}>Tes décisions apparaîtront ici après analyse.</div>
+        </div>
+      ):(
+        <div style={{display:"flex",flexDirection:"column",gap:8}}>
+          {history.map((h,i)=>(
+            <button key={h.id||i} onClick={()=>setSelected(h)} style={{background:CARD,border:`1px solid ${BORDER}`,borderRadius:16,padding:"14px 16px",cursor:"pointer",textAlign:"left",fontFamily:SANS,display:"flex",gap:12,alignItems:"center"}}
+              onMouseEnter={e=>e.currentTarget.style.background=CARD2} onMouseLeave={e=>e.currentTarget.style.background=CARD}>
+              <div style={{width:40,height:40,borderRadius:10,background:`${h.mod?.color||"#444"}18`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>{h.mod?.icon||"◎"}</div>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:4}}>
+                  <div style={{fontFamily:MONO,fontSize:12,fontWeight:700,color:VC[h.result?.verdict]||h.mod?.color||TEXT}}>{h.result?.verdict}</div>
+                  <div style={{display:"inline-flex",alignItems:"center",gap:4,background:`${SC[h.result?.signal]||"#888"}18`,borderRadius:6,padding:"2px 7px"}}>
+                    <div style={{width:5,height:5,borderRadius:"50%",background:SC[h.result?.signal]||"#888"}}/>
+                    <div style={{fontFamily:MONO,fontSize:8,color:SC[h.result?.signal]||"#888",letterSpacing:1}}>{h.result?.signal}</div>
+                  </div>
+                </div>
+                <div style={{fontFamily:SANS,fontSize:11,color:MUTED,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:220}}>{h.form?.situation}</div>
+              </div>
+              <div style={{textAlign:"right",flexShrink:0}}>
+                <div style={{fontFamily:MONO,fontSize:8,color:"#333"}}>{h.mod?.label}</div>
+                <div style={{fontFamily:MONO,fontSize:8,color:"#2A2A2A",marginTop:2}}>{new Date(h.date).toLocaleDateString("fr-FR")}</div>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── PROFIL ───────────────────────────────────────────────────
+function ProfileScreen({ history, unlocked, onPaywall }) {
+  const total=history.length;
+  const byMod={};
+  ALL_MODULES.forEach(m=>byMod[m.id]=0);
+  let pos=0,neg=0,neu=0;
+  const posV=["RESTE","INVESTIS","LANCE","PUBLIE","ACCEPTE","GO","ACCEPTABLE","SAIN"];
+  const negV=["QUITTE","REFUSE","STOP","DANGER","MANIPULATION DÉTECTÉE"];
+  history.forEach(h=>{ if(byMod[h.mod?.id]!==undefined)byMod[h.mod.id]++; const v=h.result?.verdict||""; if(posV.some(p=>v.includes(p)))pos++; else if(negV.some(n=>v.includes(n)))neg++; else neu++; });
+  const fav=Object.entries(byMod).sort((a,b)=>b[1]-a[1])[0];
+  const favMod=ALL_MODULES.find(m=>m.id===fav?.[0]);
+  const favCount=fav?.[1]||0;
+  return(
+    <div>
+      <Lbl mb={18}>— Profil</Lbl>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:9,marginBottom:9}}>
+        {[{l:"DÉCISIONS",v:total,c:TEXT},{l:"POSITIVES",v:pos,c:"#30D158"},{l:"NÉGATIVES",v:neg,c:"#FF453A"}].map((s,i)=>(
+          <Crd key={i} style={{textAlign:"center",padding:"16px 10px"}}>
+            <div style={{fontFamily:SANS,fontSize:28,fontWeight:800,color:s.c,lineHeight:1,marginBottom:6}}>{s.v}</div>
+            <div style={{fontFamily:MONO,fontSize:7,letterSpacing:2,color:MUTED}}>{s.l}</div>
+          </Crd>
+        ))}
+      </div>
+      {favMod&&favCount>0&&(
+        <Crd style={{marginBottom:9}}>
+          <Lbl>Module préféré</Lbl>
+          <div style={{display:"flex",alignItems:"center",gap:12}}>
+            <div style={{width:44,height:44,borderRadius:12,background:`${favMod.color}18`,border:`1px solid ${favMod.color}25`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22}}>{favMod.icon}</div>
+            <div>
+              <div style={{fontFamily:MONO,fontSize:13,fontWeight:700,letterSpacing:2,color:favMod.color}}>{favMod.label}</div>
+              <div style={{fontFamily:MONO,fontSize:9,color:MUTED,marginTop:3}}>{favCount} décision{favCount>1?"s":""}</div>
+            </div>
+          </div>
+        </Crd>
+      )}
+      <Crd style={{marginBottom:9}}>
+        <Lbl>Répartition</Lbl>
+        {BASE_MODULES.map(m=>{ const c=byMod[m.id]||0; const pct=total>0?Math.round((c/total)*100):0; return(
+          <div key={m.id} style={{marginBottom:10}}>
+            <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}>
+              <div style={{display:"flex",alignItems:"center",gap:8}}><span style={{fontSize:13}}>{m.icon}</span><span style={{fontFamily:MONO,fontSize:9,letterSpacing:1,color:MUTED}}>{m.label}</span></div>
+              <div style={{fontFamily:MONO,fontSize:9,color:MUTED}}>{c}</div>
+            </div>
+            <div style={{height:3,background:CARD2,borderRadius:2}}>
+              <div style={{height:"100%",width:`${pct}%`,background:m.color,borderRadius:2,transition:"width .4s"}}/>
+            </div>
+          </div>
+        );})}
+      </Crd>
+      <div style={{background:`linear-gradient(135deg,${CARD2},${CARD})`,border:`1px solid ${unlocked?"rgba(48,209,88,0.2)":BORDER}`,borderRadius:16,padding:"18px",textAlign:"center"}}>
+        {unlocked?(
+          <>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:8,marginBottom:6}}>
+              <div style={{width:6,height:6,borderRadius:"50%",background:"#30D158"}}/>
+              <div style={{fontFamily:MONO,fontSize:10,color:"#30D158",letterSpacing:2}}>MEMBRE CLUB ACTIF</div>
+            </div>
+            <div style={{fontFamily:SANS,fontSize:11,color:MUTED}}>Décisions illimitées · Modes exclusifs · Formats avancés</div>
+          </>
+        ):(
+          <>
+            <Lbl mb={10}>Passe au Club</Lbl>
+            <button onClick={onPaywall} style={{background:TEXT,border:"none",borderRadius:12,color:"#000",padding:"12px 22px",fontFamily:MONO,fontSize:9,fontWeight:900,letterSpacing:3,cursor:"pointer"}}>⚡ 7 JOURS OFFERTS — 9€/MOIS</button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── APP ──────────────────────────────────────────────────────
+export default function App() {
+  const [screen,setScreen]=useState("home");
+  const [navTab,setNavTab]=useState("home");
+  const [activeMod,setActiveMod]=useState(null);
+  const [result,setResult]=useState(null);
+  const [history,setHistory]=useState(getHistory());
+  const [unlocked,setUnlockedState]=useState(getUnlocked());
+  const [count,setCount]=useState(getCount());
+  const [showPaywall,setShowPaywall]=useState(false);
+  const [sharedData,setSharedData]=useState(null);
+
+  useEffect(()=>{
+    const hash=window.location.hash;
+    if(hash.startsWith("#s/")){
+      const d=decShare(hash.slice(3));
+      if(d){ setSharedData(d); setScreen("shared"); }
+    }
+  },[]);
+
+  useEffect(()=>{ setCount(getCount()); setUnlockedState(getUnlocked()); setHistory(getHistory()); },[screen]);
+
+  const handleUnlock=()=>{ setUnlockedState(true); setShowPaywall(false); };
+  const handleSelect=(m)=>{ setActiveMod(m); setScreen("form"); setResult(null); };
+  const handleResult=(r,form)=>{
+    const entry={id:Date.now(),date:new Date().toISOString(),mod:{id:activeMod.id,label:activeMod.label,icon:activeMod.icon,color:activeMod.color},form,result:r};
+    pushHistory(entry); setHistory(getHistory());
+    setResult(r); setScreen("result");
+  };
+  const goHome=()=>{ setScreen("home"); setNavTab("home"); };
+  const goNav=(t)=>{ setNavTab(t); setScreen(t); };
+  const onBack=()=>{ if(screen==="result")setScreen("form"); else goHome(); };
+
+  if(screen==="shared"&&sharedData) return <SharedView data={sharedData}/>;
+
+  const isFormNav=["form","result","loading"].includes(screen);
+
+  return(
+    <div style={{background:BG,minHeight:"100vh",fontFamily:SANS,color:TEXT,paddingBottom:72}}>
+      <style>{`*{box-sizing:border-box}button{transition:background .12s}input,textarea{color:#F0F0F6!important}input::placeholder,textarea::placeholder{color:rgba(255,255,255,0.2)!important}::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:#2A2A2A}`}</style>
+
+      {showPaywall&&<Paywall count={count} onClose={()=>setShowPaywall(false)} onUnlock={handleUnlock}/>}
+
+      {/* HEADER */}
+      <div style={{borderBottom:`1px solid ${BORDER}`,padding:"0 18px"}}>
+        <div style={{textAlign:"center",padding:"18px 0 12px"}}>
+          <div style={{fontFamily:MONO,fontSize:28,fontWeight:900,color:"#FFFFFF",letterSpacing:-1,lineHeight:1}}>CUT/GO™</div>
+          <div style={{fontFamily:MONO,fontSize:8,letterSpacing:6,color:"#2A2A2A",marginTop:4}}>DECISION ENGINE</div>
+        </div>
+        {isFormNav&&(
+          <div style={{paddingBottom:10,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+            <button onClick={onBack} style={{background:"none",border:"none",color:activeMod?.color||MUTED,fontFamily:MONO,fontSize:9,letterSpacing:2,cursor:"pointer",padding:0}}>← RETOUR</button>
+            <div style={{fontFamily:MONO,fontSize:9,letterSpacing:3,color:MUTED}}>{screen==="form"?activeMod?.label:"RÉSULTAT"}</div>
+            <div style={{width:60}}/>
+          </div>
+        )}
+      </div>
+
+      {/* CONTENU */}
+      <div style={{maxWidth:620,margin:"0 auto",padding:"18px 16px"}}>
+        {screen==="home"&&<HomeScreen onSelect={handleSelect} unlocked={unlocked} onPaywall={()=>setShowPaywall(true)} count={count}/>}
+        {screen==="form"&&activeMod&&<FormScreen mod={activeMod} onResult={handleResult} onPaywall={()=>setShowPaywall(true)} unlocked={unlocked} count={count}/>}
+        {screen==="result"&&result&&activeMod&&<ResultScreen mod={activeMod} result={result} onHome={goHome} onNew={()=>setScreen("form")} unlocked={unlocked} onPaywall={()=>setShowPaywall(true)}/>}
+        {screen==="history"&&<HistoryScreen history={history}/>}
+        {screen==="profile"&&<ProfileScreen history={history} unlocked={unlocked} onPaywall={()=>setShowPaywall(true)}/>}
+      </div>
+
+      {/* BOTTOM NAV */}
+      <div style={{position:"fixed",bottom:0,left:0,right:0,background:BG,borderTop:`1px solid ${BORDER}`,display:"flex"}}>
+        {[{id:"home",label:"MODULES",icon:"◎"},{id:"history",label:"HISTORIQUE",icon:"◷"},{id:"profile",label:"PROFIL",icon:"◈"}].map(t=>{
+          const active=t.id==="home"?["home","form","result"].includes(screen):screen===t.id;
+          const ac=active?(activeMod?.color||"#C084FC"):"transparent";
+          return(
+            <button key={t.id} onClick={()=>t.id==="home"?goHome():goNav(t.id)} style={{flex:1,padding:"9px 0 11px",background:"transparent",border:"none",color:active?TEXT:MUTED,cursor:"pointer",fontFamily:MONO,fontSize:8,letterSpacing:3,display:"flex",flexDirection:"column",alignItems:"center",gap:3}}>
+              <div style={{width:22,height:2,borderRadius:1,background:ac,marginBottom:3,transition:"all .2s"}}/>
+              <span style={{fontSize:16}}>{t.icon}</span>
+              {t.label}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
