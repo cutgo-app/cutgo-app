@@ -102,7 +102,7 @@ const decShare = (s)=>{ try{ const b=s.replace(/-/g,"+").replace(/_/g,"/"); cons
 const buildShareLink = (mod,result)=>{ const enc=encShare({v:result.verdict,s:result.signal,a:result.action,ml:mod.label,mc:mod.color,mi:mod.icon}); return enc?`https://${SITE_URL}/#s/${enc}`:`https://${SITE_URL}`; };
 
 // ─── UI ATOMS ─────────────────────────────────────────────────
-const Lbl = ({children,color,mb=10})=> <div style={{fontFamily:MONO,fontSize:9,letterSpacing:4,color:color||MUTED,marginBottom:mb,textTransform:"uppercase"}}>{children}</div>;
+const Lbl = ({children,color,mb=10})=> <div style={{fontFamily:MONO,fontSize:11,letterSpacing:4,color:color||MUTED,marginBottom:mb,textTransform:"uppercase"}}>{children}</div>;
 const Crd = ({children,accent,hi,style={}})=> <div style={{background:hi?`${accent}15`:CARD,border:`1px solid ${hi?`${accent}30`:BORDER}`,borderRadius:16,padding:"18px",...style}}>{children}</div>;
 
 // ─── ÉCRAN PARTAGÉ (destinataire) ────────────────────────────
@@ -167,7 +167,7 @@ function Paywall({ count, onClose, onUnlock }) {
           <button onClick={check} style={{background:CARD2,border:`1px solid ${BORDER}`,borderRadius:10,color:TEXT,padding:"0 18px",fontFamily:MONO,fontSize:10,fontWeight:700,cursor:"pointer",letterSpacing:1}}>OK</button>
         </div>
         {err&&<div style={{fontFamily:MONO,color:"#FF453A",fontSize:10,marginBottom:8,letterSpacing:1}}>{err}</div>}
-        <button onClick={onClose} style={{background:"none",border:"none",color:"#333",fontFamily:MONO,fontSize:9,cursor:"pointer",marginTop:14,display:"block",width:"100%",textAlign:"center",letterSpacing:2}}>Retour</button>
+        <button onClick={onClose} style={{background:"none",border:"none",color:"#333",fontFamily:MONO,fontSize:11,cursor:"pointer",marginTop:14,display:"block",width:"100%",textAlign:"center",letterSpacing:2}}>Retour</button>
       </div>
     </div>
   );
@@ -197,7 +197,7 @@ function ShareModal({ mod, result, onClose }) {
           {copied?"✓ LIEN COPIÉ !":"COPIER LE LIEN"}
         </button>
         <div style={{fontFamily:SANS,fontSize:12,color:MUTED,textAlign:"center",lineHeight:1.6,marginBottom:14}}>Ton ami ouvre le lien et voit ton verdict.<br/>Un bouton l'invite à tester l'appli.</div>
-        <button onClick={onClose} style={{background:"none",border:"none",color:"#333",fontFamily:MONO,fontSize:9,cursor:"pointer",display:"block",width:"100%",textAlign:"center",letterSpacing:2}}>Fermer</button>
+        <button onClick={onClose} style={{background:"none",border:"none",color:"#333",fontFamily:MONO,fontSize:11,cursor:"pointer",display:"block",width:"100%",textAlign:"center",letterSpacing:2}}>Fermer</button>
       </div>
     </div>
   );
@@ -233,14 +233,14 @@ function ResultScreen({ mod, result, onHome, onNew, unlocked, onPaywall }) {
             const active=activeFormat===f;
             const colors={STANDARD:TEXT,BRUTAL:"#FF453A",RAPIDE:"#FFD60A","STRATÉGIQUE":"#0A84FF"};
             return(
-              <button key={f} onClick={()=>handleFormat(f)} style={{flex:1,padding:"7px 0",background:active?colors[f]:"transparent",border:`1px solid ${active?colors[f]:BORDER}`,borderRadius:8,color:active?(f==="STANDARD"?"#000":f==="RAPIDE"?"#000":"#fff"):MUTED,fontFamily:MONO,fontSize:7,letterSpacing:1,cursor:"pointer",fontWeight:active?700:400,opacity:(!unlocked&&f!=="STANDARD")?0.4:1}}>
+              <button key={f} onClick={()=>handleFormat(f)} style={{flex:1,padding:"7px 0",background:active?colors[f]:"transparent",border:`1px solid ${active?colors[f]:BORDER}`,borderRadius:8,color:active?(f==="STANDARD"?"#000":f==="RAPIDE"?"#000":"#fff"):MUTED,fontFamily:MONO,fontSize:10,letterSpacing:1,cursor:"pointer",fontWeight:active?700:400,opacity:(!unlocked&&f!=="STANDARD")?0.4:1}}>
                 {f}{!unlocked&&f!=="STANDARD"&&<span style={{display:"block",fontSize:6,color:MUTED,letterSpacing:0}}>CLUB</span>}
               </button>
             );
           })}
         </div>
         {formatLoading?(
-          <div style={{textAlign:"center",padding:"30px 0"}}><div style={{fontFamily:MONO,fontSize:9,letterSpacing:4,color:MUTED}}>REFORMATAGE...</div></div>
+          <div style={{textAlign:"center",padding:"30px 0"}}><div style={{fontFamily:MONO,fontSize:11,letterSpacing:4,color:MUTED}}>REFORMATAGE...</div></div>
         ):(
           <>
             <Crd accent={vc} hi>
@@ -253,7 +253,7 @@ function ResultScreen({ mod, result, onHome, onNew, unlocked, onPaywall }) {
               <div style={{display:"flex",flexDirection:"column",gap:10}}>
                 {displayResult.pourquoi.map((r,i)=>(
                   <div key={i} style={{display:"flex",gap:12,alignItems:"flex-start"}}>
-                    <div style={{fontFamily:MONO,fontSize:9,color:mod.color,minWidth:20,paddingTop:3,letterSpacing:1}}>0{i+1}</div>
+                    <div style={{fontFamily:MONO,fontSize:11,color:mod.color,minWidth:20,paddingTop:3,letterSpacing:1}}>0{i+1}</div>
                     <div style={{fontFamily:SANS,fontSize:13,color:TEXT,lineHeight:1.55,opacity:.85}}>{r}</div>
                   </div>
                 ))}
@@ -269,14 +269,14 @@ function ResultScreen({ mod, result, onHome, onNew, unlocked, onPaywall }) {
               ))}
             </div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
-              <button onClick={()=>setShowShare(true)} style={{background:CARD2,border:`1px solid ${BORDER}`,borderRadius:12,color:MUTED,padding:"13px 0",fontFamily:MONO,fontSize:9,letterSpacing:2,cursor:"pointer",fontWeight:700}}>PARTAGER</button>
-              <button onClick={onNew} style={{background:CARD2,border:`1px solid ${BORDER}`,borderRadius:12,color:MUTED,padding:"13px 0",fontFamily:MONO,fontSize:9,letterSpacing:2,cursor:"pointer",fontWeight:700}}>NOUVELLE</button>
-              <button onClick={onHome} style={{background:mod.color,border:"none",borderRadius:12,color:"#000",padding:"13px 0",fontFamily:MONO,fontSize:9,letterSpacing:2,cursor:"pointer",fontWeight:700}}>MODULES</button>
+              <button onClick={()=>setShowShare(true)} style={{background:CARD2,border:`1px solid ${BORDER}`,borderRadius:12,color:MUTED,padding:"13px 0",fontFamily:MONO,fontSize:11,letterSpacing:2,cursor:"pointer",fontWeight:700}}>PARTAGER</button>
+              <button onClick={onNew} style={{background:CARD2,border:`1px solid ${BORDER}`,borderRadius:12,color:MUTED,padding:"13px 0",fontFamily:MONO,fontSize:11,letterSpacing:2,cursor:"pointer",fontWeight:700}}>NOUVELLE</button>
+              <button onClick={onHome} style={{background:mod.color,border:"none",borderRadius:12,color:"#000",padding:"13px 0",fontFamily:MONO,fontSize:11,letterSpacing:2,cursor:"pointer",fontWeight:700}}>MODULES</button>
             </div>
             {!unlocked&&(
               <div style={{background:CARD2,border:`1px solid ${BORDER}`,borderRadius:14,padding:"14px 16px",textAlign:"center"}}>
                 <div style={{fontFamily:SANS,fontSize:12,color:MUTED,marginBottom:10}}>Modes exclusifs + formats avancés disponibles dans le Club.</div>
-                <button onClick={onPaywall} style={{background:TEXT,border:"none",borderRadius:10,color:"#000",padding:"10px 20px",fontFamily:MONO,fontSize:9,fontWeight:900,letterSpacing:2,cursor:"pointer"}}>⚡ 7 JOURS OFFERTS</button>
+                <button onClick={onPaywall} style={{background:TEXT,border:"none",borderRadius:10,color:"#000",padding:"10px 20px",fontFamily:MONO,fontSize:11,fontWeight:900,letterSpacing:2,cursor:"pointer"}}>⚡ 7 JOURS OFFERTS</button>
               </div>
             )}
           </>
@@ -312,7 +312,7 @@ function FormScreen({ mod, onResult, onPaywall, unlocked, count }) {
 
   if(loading) return(
     <div style={{textAlign:"center",padding:"80px 0"}}>
-      <div style={{fontFamily:MONO,fontSize:9,letterSpacing:6,color:MUTED,marginBottom:24}}>ANALYSE EN COURS</div>
+      <div style={{fontFamily:MONO,fontSize:11,letterSpacing:6,color:MUTED,marginBottom:24}}>ANALYSE EN COURS</div>
       <div style={{display:"flex",gap:10,justifyContent:"center"}}>
         {[0,1,2].map(i=><div key={i} style={{width:7,height:7,borderRadius:"50%",background:mod.color,animation:`p 1.2s ${i*.2}s infinite`}}/>)}
       </div>
@@ -329,14 +329,14 @@ function FormScreen({ mod, onResult, onPaywall, unlocked, count }) {
           <div style={{fontFamily:MONO,fontSize:9,color:MUTED,letterSpacing:1}}>{mod.desc}</div>
         </div>
         {SCENARIOS[mod.id]&&(
-          <button onClick={()=>setShowScenarios(!showScenarios)} style={{background:"transparent",border:`1px solid ${BORDER}`,borderRadius:8,color:MUTED,padding:"7px 12px",fontFamily:MONO,fontSize:9,letterSpacing:2,cursor:"pointer"}}>
+          <button onClick={()=>setShowScenarios(!showScenarios)} style={{background:"transparent",border:`1px solid ${BORDER}`,borderRadius:8,color:MUTED,padding:"7px 12px",fontFamily:MONO,fontSize:11,letterSpacing:2,cursor:"pointer"}}>
             {showScenarios?"FERMER":`${SCENARIOS[mod.id].length} SCÉNARIOS`}
           </button>
         )}
       </div>
       {showScenarios&&SCENARIOS[mod.id]&&(
         <div style={{background:CARD,border:`1px solid ${BORDER}`,borderRadius:14,marginBottom:16,overflow:"hidden"}}>
-          <div style={{fontFamily:MONO,fontSize:9,letterSpacing:3,color:MUTED,padding:"10px 14px",borderBottom:`1px solid ${BORDER}`}}>CHARGER UN SCÉNARIO</div>
+          <div style={{fontFamily:MONO,fontSize:11,letterSpacing:3,color:MUTED,padding:"12px 14px",borderBottom:`1px solid ${BORDER}`}}>CHARGER UN SCÉNARIO</div>
           {SCENARIOS[mod.id].map((s,i)=>(
             <button key={i} onClick={()=>load(s)} style={{width:"100%",background:"transparent",border:"none",borderBottom:i<SCENARIOS[mod.id].length-1?`1px solid ${BORDER}`:"none",color:MUTED,padding:"11px 14px",cursor:"pointer",textAlign:"left",fontFamily:SANS,fontSize:12,display:"flex",alignItems:"center",gap:8}}
               onMouseEnter={e=>e.currentTarget.style.background=CARD2} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
@@ -356,7 +356,7 @@ function FormScreen({ mod, onResult, onPaywall, unlocked, count }) {
           <Lbl mb={9}>Urgence</Lbl>
           <div style={{display:"flex",gap:8}}>
             {["faible","moyenne","élevée"].map(u=>(
-              <button key={u} onClick={()=>set("urgence",u)} style={{flex:1,padding:"10px 0",background:form.urgence===u?mod.color:"transparent",border:`1px solid ${form.urgence===u?mod.color:BORDER}`,borderRadius:10,color:form.urgence===u?"#000":MUTED,fontFamily:MONO,fontSize:9,letterSpacing:1,cursor:"pointer",fontWeight:form.urgence===u?700:400,textTransform:"uppercase"}}>{u}</button>
+              <button key={u} onClick={()=>set("urgence",u)} style={{flex:1,padding:"10px 0",background:form.urgence===u?mod.color:"transparent",border:`1px solid ${form.urgence===u?mod.color:BORDER}`,borderRadius:10,color:form.urgence===u?"#000":MUTED,fontFamily:MONO,fontSize:11,letterSpacing:1,cursor:"pointer",fontWeight:form.urgence===u?700:400,textTransform:"uppercase"}}>{u}</button>
             ))}
           </div>
         </div>
@@ -374,14 +374,14 @@ function HomeScreen({ onSelect, unlocked, onPaywall, count }) {
     <div>
       {!unlocked&&(
         <div style={{background:CARD,border:`1px solid ${BORDER}`,borderRadius:14,padding:"12px 16px",marginBottom:18,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-          <div style={{fontFamily:MONO,fontSize:9,letterSpacing:2,color:MUTED}}>{remaining>0?`${remaining} décision${remaining>1?"s":""} gratuite${remaining>1?"s":""}`:0+" décisions restantes"}</div>
-          <button onClick={onPaywall} style={{background:TEXT,border:"none",borderRadius:8,color:"#000",padding:"7px 14px",fontFamily:MONO,fontSize:9,fontWeight:900,letterSpacing:2,cursor:"pointer"}}>CLUB →</button>
+          <div style={{fontFamily:MONO,fontSize:11,letterSpacing:2,color:MUTED}}>{remaining>0?`${remaining} décision${remaining>1?"s":""} gratuite${remaining>1?"s":""}`:0+" décisions restantes"}</div>
+          <button onClick={onPaywall} style={{background:TEXT,border:"none",borderRadius:8,color:"#000",padding:"7px 14px",fontFamily:MONO,fontSize:11,fontWeight:900,letterSpacing:2,cursor:"pointer"}}>CLUB →</button>
         </div>
       )}
       {unlocked&&(
         <div style={{background:`rgba(48,209,88,0.08)`,border:`1px solid rgba(48,209,88,0.2)`,borderRadius:14,padding:"10px 16px",marginBottom:18,display:"flex",alignItems:"center",gap:8}}>
           <div style={{width:6,height:6,borderRadius:"50%",background:"#30D158"}}/>
-          <div style={{fontFamily:MONO,fontSize:9,letterSpacing:2,color:"#30D158"}}>CLUB ACTIF — ACCÈS COMPLET</div>
+          <div style={{fontFamily:MONO,fontSize:11,letterSpacing:2,color:"#30D158"}}>CLUB ACTIF — ACCÈS COMPLET</div>
         </div>
       )}
       <Lbl mb={12}>— Modules</Lbl>
@@ -389,15 +389,12 @@ function HomeScreen({ onSelect, unlocked, onPaywall, count }) {
         {BASE_MODULES.map(m=>(
           <button key={m.id} onClick={()=>onSelect(m)} style={{background:CARD,border:`1px solid ${BORDER}`,borderRadius:16,padding:"16px",cursor:"pointer",textAlign:"left",fontFamily:SANS,display:"flex",alignItems:"center",gap:14}}
             onMouseEnter={e=>e.currentTarget.style.background=CARD2} onMouseLeave={e=>e.currentTarget.style.background=CARD}>
-            <div style={{width:44,height:44,borderRadius:12,background:`${m.color}18`,border:`1px solid ${m.color}25`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>{m.icon}</div>
+            <div style={{width:44,height:44,borderRadius:12,background:`${m.color}15`,border:`2px solid ${m.color}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0,color:m.color}}>{m.icon}</div>
             <div style={{flex:1}}>
-              <div style={{fontFamily:MONO,fontSize:11,fontWeight:700,letterSpacing:2,color:TEXT,marginBottom:3}}>{m.label}</div>
-              <div style={{fontFamily:SANS,fontSize:11,color:MUTED}}>{m.desc}</div>
+              <div style={{fontFamily:MONO,fontSize:12,fontWeight:700,letterSpacing:2,color:TEXT,marginBottom:3}}>{m.label}</div>
+              <div style={{fontFamily:SANS,fontSize:12,color:MUTED}}>{m.desc}</div>
             </div>
-            <div style={{display:"flex",alignItems:"center",gap:8}}>
-              <div style={{fontFamily:MONO,fontSize:8,color:"#2A2A2A",letterSpacing:1}}>{SCENARIOS[m.id]?.length} scén.</div>
-              <div style={{width:3,height:30,borderRadius:2,background:m.color,opacity:.5}}/>
-            </div>
+            <div style={{fontFamily:MONO,fontSize:11,color:"#444",letterSpacing:1}}>{SCENARIOS[m.id]?.length} scén.</div>
           </button>
         ))}
       </div>
@@ -408,10 +405,10 @@ function HomeScreen({ onSelect, unlocked, onPaywall, count }) {
             onMouseEnter={e=>e.currentTarget.style.background=CARD2} onMouseLeave={e=>e.currentTarget.style.background=CARD}>
             <div style={{width:44,height:44,borderRadius:12,background:unlocked?`${m.color}18`:CARD2,display:"flex",alignItems:"center",justifyContent:"center",fontSize:unlocked?18:16,flexShrink:0}}>{unlocked?m.icon:"🔒"}</div>
             <div style={{flex:1}}>
-              <div style={{fontFamily:MONO,fontSize:11,fontWeight:700,letterSpacing:2,color:unlocked?TEXT:MUTED,marginBottom:3}}>{m.label}</div>
+              <div style={{fontFamily:MONO,fontSize:12,fontWeight:700,letterSpacing:2,color:unlocked?TEXT:MUTED,marginBottom:3}}>{m.label}</div>
               <div style={{fontFamily:SANS,fontSize:11,color:"#444"}}>{m.desc}</div>
             </div>
-            {!unlocked&&<div style={{fontFamily:MONO,fontSize:8,color:"#444",letterSpacing:2,background:CARD2,padding:"4px 8px",borderRadius:6}}>CLUB</div>}
+            {!unlocked&&<div style={{fontFamily:MONO,fontSize:10,color:"#555",letterSpacing:2,background:CARD2,padding:"5px 10px",borderRadius:6}}>CLUB</div>}
           </button>
         ))}
       </div>
@@ -433,12 +430,12 @@ function HistoryScreen({ history }) {
     const sc=SC[selected.result?.signal]||"#888";
     return(
       <div>
-        <button onClick={()=>setSelected(null)} style={{background:"none",border:"none",color:selected.mod?.color||MUTED,fontFamily:MONO,fontSize:9,letterSpacing:2,cursor:"pointer",padding:0,marginBottom:18}}>← HISTORIQUE</button>
+        <button onClick={()=>setSelected(null)} style={{background:"none",border:"none",color:selected.mod?.color||MUTED,fontFamily:MONO,fontSize:11,letterSpacing:2,cursor:"pointer",padding:0,marginBottom:18}}>← HISTORIQUE</button>
         <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:18,paddingBottom:14,borderBottom:`1px solid ${BORDER}`}}>
           <div style={{width:40,height:40,borderRadius:10,background:`${selected.mod?.color||"#444"}18`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>{selected.mod?.icon||"◎"}</div>
           <div>
             <div style={{fontFamily:MONO,fontSize:11,fontWeight:700,letterSpacing:2,color:selected.mod?.color||TEXT}}>{selected.mod?.label}</div>
-            <div style={{fontFamily:MONO,fontSize:9,color:MUTED}}>{new Date(selected.date).toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}</div>
+            <div style={{fontFamily:MONO,fontSize:11,color:MUTED}}>{new Date(selected.date).toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}</div>
           </div>
         </div>
         {/* Situation */}
@@ -460,7 +457,7 @@ function HistoryScreen({ history }) {
           <Lbl>Pourquoi</Lbl>
           {selected.result?.pourquoi?.map((r,i)=>(
             <div key={i} style={{display:"flex",gap:12,marginBottom:i===0?8:0}}>
-              <div style={{fontFamily:MONO,fontSize:9,color:selected.mod?.color||TEXT,minWidth:20,paddingTop:3}}>0{i+1}</div>
+              <div style={{fontFamily:MONO,fontSize:11,color:selected.mod?.color||TEXT,minWidth:20,paddingTop:3}}>0{i+1}</div>
               <div style={{fontFamily:SANS,fontSize:12,color:TEXT,lineHeight:1.55,opacity:.85}}>{r}</div>
             </div>
           ))}
@@ -483,11 +480,11 @@ function HistoryScreen({ history }) {
     <div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18}}>
         <Lbl mb={0}>— Historique</Lbl>
-        <div style={{fontFamily:MONO,fontSize:9,color:MUTED}}>{history.length} décision{history.length!==1?"s":""}</div>
+        <div style={{fontFamily:MONO,fontSize:11,color:MUTED}}>{history.length} décision{history.length!==1?"s":""}</div>
       </div>
       {history.length===0?(
         <div style={{textAlign:"center",padding:"60px 0"}}>
-          <div style={{fontFamily:MONO,fontSize:9,letterSpacing:4,color:"#2A2A2A",marginBottom:10}}>AUCUNE DÉCISION</div>
+          <div style={{fontFamily:MONO,fontSize:11,letterSpacing:4,color:"#333",marginBottom:10}}>AUCUNE DÉCISION</div>
           <div style={{fontFamily:SANS,fontSize:12,color:MUTED}}>Tes décisions apparaîtront ici après analyse.</div>
         </div>
       ):(
@@ -507,8 +504,8 @@ function HistoryScreen({ history }) {
                 <div style={{fontFamily:SANS,fontSize:11,color:MUTED,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:220}}>{h.form?.situation}</div>
               </div>
               <div style={{textAlign:"right",flexShrink:0}}>
-                <div style={{fontFamily:MONO,fontSize:8,color:"#333"}}>{h.mod?.label}</div>
-                <div style={{fontFamily:MONO,fontSize:8,color:"#2A2A2A",marginTop:2}}>{new Date(h.date).toLocaleDateString("fr-FR")}</div>
+                <div style={{fontFamily:MONO,fontSize:10,color:"#666"}}>{h.mod?.label}</div>
+                <div style={{fontFamily:MONO,fontSize:10,color:"#444",marginTop:2}}>{new Date(h.date).toLocaleDateString("fr-FR")}</div>
               </div>
             </button>
           ))}
@@ -537,7 +534,7 @@ function ProfileScreen({ history, unlocked, onPaywall }) {
         {[{l:"DÉCISIONS",v:total,c:TEXT},{l:"POSITIVES",v:pos,c:"#30D158"},{l:"NÉGATIVES",v:neg,c:"#FF453A"}].map((s,i)=>(
           <Crd key={i} style={{textAlign:"center",padding:"16px 10px"}}>
             <div style={{fontFamily:SANS,fontSize:28,fontWeight:800,color:s.c,lineHeight:1,marginBottom:6}}>{s.v}</div>
-            <div style={{fontFamily:MONO,fontSize:7,letterSpacing:2,color:MUTED}}>{s.l}</div>
+            <div style={{fontFamily:MONO,fontSize:10,letterSpacing:2,color:MUTED}}>{s.l}</div>
           </Crd>
         ))}
       </div>
@@ -548,7 +545,7 @@ function ProfileScreen({ history, unlocked, onPaywall }) {
             <div style={{width:44,height:44,borderRadius:12,background:`${favMod.color}18`,border:`1px solid ${favMod.color}25`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22}}>{favMod.icon}</div>
             <div>
               <div style={{fontFamily:MONO,fontSize:13,fontWeight:700,letterSpacing:2,color:favMod.color}}>{favMod.label}</div>
-              <div style={{fontFamily:MONO,fontSize:9,color:MUTED,marginTop:3}}>{favCount} décision{favCount>1?"s":""}</div>
+              <div style={{fontFamily:MONO,fontSize:11,color:MUTED,marginTop:3}}>{favCount} décision{favCount>1?"s":""}</div>
             </div>
           </div>
         </Crd>
@@ -558,8 +555,8 @@ function ProfileScreen({ history, unlocked, onPaywall }) {
         {BASE_MODULES.map(m=>{ const c=byMod[m.id]||0; const pct=total>0?Math.round((c/total)*100):0; return(
           <div key={m.id} style={{marginBottom:10}}>
             <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}>
-              <div style={{display:"flex",alignItems:"center",gap:8}}><span style={{fontSize:13}}>{m.icon}</span><span style={{fontFamily:MONO,fontSize:9,letterSpacing:1,color:MUTED}}>{m.label}</span></div>
-              <div style={{fontFamily:MONO,fontSize:9,color:MUTED}}>{c}</div>
+              <div style={{display:"flex",alignItems:"center",gap:8}}><span style={{fontSize:13}}>{m.icon}</span><span style={{fontFamily:MONO,fontSize:11,letterSpacing:1,color:MUTED}}>{m.label}</span></div>
+              <div style={{fontFamily:MONO,fontSize:11,color:MUTED}}>{c}</div>
             </div>
             <div style={{height:3,background:CARD2,borderRadius:2}}>
               <div style={{height:"100%",width:`${pct}%`,background:m.color,borderRadius:2,transition:"width .4s"}}/>
@@ -572,14 +569,14 @@ function ProfileScreen({ history, unlocked, onPaywall }) {
           <>
             <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:8,marginBottom:6}}>
               <div style={{width:6,height:6,borderRadius:"50%",background:"#30D158"}}/>
-              <div style={{fontFamily:MONO,fontSize:10,color:"#30D158",letterSpacing:2}}>MEMBRE CLUB ACTIF</div>
+              <div style={{fontFamily:MONO,fontSize:12,color:"#30D158",letterSpacing:2}}>MEMBRE CLUB ACTIF</div>
             </div>
             <div style={{fontFamily:SANS,fontSize:11,color:MUTED}}>Décisions illimitées · Modes exclusifs · Formats avancés</div>
           </>
         ):(
           <>
             <Lbl mb={10}>Passe au Club</Lbl>
-            <button onClick={onPaywall} style={{background:TEXT,border:"none",borderRadius:12,color:"#000",padding:"12px 22px",fontFamily:MONO,fontSize:9,fontWeight:900,letterSpacing:3,cursor:"pointer"}}>⚡ 7 JOURS OFFERTS — 9€/MOIS</button>
+            <button onClick={onPaywall} style={{background:TEXT,border:"none",borderRadius:12,color:"#000",padding:"12px 22px",fontFamily:MONO,fontSize:11,fontWeight:900,letterSpacing:3,cursor:"pointer"}}>⚡ 7 JOURS OFFERTS — 9€/MOIS</button>
           </>
         )}
       </div>
@@ -638,8 +635,8 @@ export default function App() {
         </div>
         {isFormNav&&(
           <div style={{paddingBottom:10,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-            <button onClick={onBack} style={{background:"none",border:"none",color:activeMod?.color||MUTED,fontFamily:MONO,fontSize:9,letterSpacing:2,cursor:"pointer",padding:0}}>← RETOUR</button>
-            <div style={{fontFamily:MONO,fontSize:9,letterSpacing:3,color:MUTED}}>{screen==="form"?activeMod?.label:"RÉSULTAT"}</div>
+            <button onClick={onBack} style={{background:"none",border:"none",color:activeMod?.color||MUTED,fontFamily:MONO,fontSize:11,letterSpacing:2,cursor:"pointer",padding:0}}>← RETOUR</button>
+            <div style={{fontFamily:MONO,fontSize:11,letterSpacing:3,color:MUTED}}>{screen==="form"?activeMod?.label:"RÉSULTAT"}</div>
             <div style={{width:60}}/>
           </div>
         )}
@@ -660,7 +657,7 @@ export default function App() {
           const active=t.id==="home"?["home","form","result"].includes(screen):screen===t.id;
           const ac=active?(activeMod?.color||"#C084FC"):"transparent";
           return(
-            <button key={t.id} onClick={()=>t.id==="home"?goHome():goNav(t.id)} style={{flex:1,padding:"9px 0 11px",background:"transparent",border:"none",color:active?TEXT:MUTED,cursor:"pointer",fontFamily:MONO,fontSize:8,letterSpacing:3,display:"flex",flexDirection:"column",alignItems:"center",gap:3}}>
+            <button key={t.id} onClick={()=>t.id==="home"?goHome():goNav(t.id)} style={{flex:1,padding:"9px 0 11px",background:"transparent",border:"none",color:active?TEXT:MUTED,cursor:"pointer",fontFamily:MONO,fontSize:10,letterSpacing:3,display:"flex",flexDirection:"column",alignItems:"center",gap:3}}>
               <div style={{width:22,height:2,borderRadius:1,background:ac,marginBottom:3,transition:"all .2s"}}/>
               <span style={{fontSize:16}}>{t.icon}</span>
               {t.label}
