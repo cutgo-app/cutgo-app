@@ -96,6 +96,45 @@ const setUnlocked = ()=> LS.set("cg_unlocked",true);
 const getHistory  = ()=> LS.get("cg_history",[]);
 const pushHistory = (e)=>{ const h=getHistory(); h.unshift(e); if(h.length>50)h.pop(); LS.set("cg_history",h); };
 
+// ─── RÉTENTION ────────────────────────────────────────────────
+const getSuivis   = ()=> LS.get("cg_suivis",{});
+const saveSuivi   = (id,rep)=>{ const s=getSuivis(); s[id]=rep; LS.set("cg_suivis",s); };
+
+const delaiSuivi  = (urgence)=> urgence==="élevée"?7:urgence==="faible"?90:30;
+
+const getAFollowUp = (history)=>{
+  const suivis=getSuivis();
+  return history.filter(h=>{
+    const age=(Date.now()-new Date(h.date).getTime())/(1000*3600*24);
+    const delai=delaiSuivi(h.form?.urgence||"moyenne");
+    return age>=delai && suivis[h.id]===undefined;
+  });
+};
+
+const calcScore = (history)=>{
+  const suivis=getSuivis();
+  const avecSuivi=history.filter(h=>suivis[h.id]!==undefined);
+  if(avecSuivi.length===0) return {score:0,niveau:"—",color:MUTED,oui:0,total:0};
+  const oui=avecSuivi.filter(h=>suivis[h.id]==="oui").length;
+  const score=Math.round((oui/avecSuivi.length)*100);
+  const niveau=score>=80?"LUCIDE":score>=50?"EN PROGRÈS":"BLOQUÉ";
+  const color=score>=80?"#30D158":score>=50?"#FFD60A":"#FF453A";
+  return {score,niveau,color,oui,total:avecSuivi.length};
+};
+
+const calcStreak = (history)=>{
+  if(!history.length) return 0;
+  const semaines=new Set(history.map(h=>Math.floor(new Date(h.date).getTime()/(7*24*3600*1000))));
+  const now=Math.floor(Date.now()/(7*24*3600*1000));
+  let streak=0; let w=now;
+  while(semaines.has(w)||semaines.has(w-1)){
+    if(semaines.has(w)) streak++;
+    w--;
+    if(!semaines.has(w)&&!semaines.has(w-1)) break;
+  }
+  return streak;
+};
+
 // ─── SHARE ────────────────────────────────────────────────────
 const encShare = (d)=>{ try{ return btoa(encodeURIComponent(JSON.stringify(d))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,""); }catch(e){ return null; } };
 const decShare = (s)=>{ try{ const b=s.replace(/-/g,"+").replace(/_/g,"/"); const p=b+"===".slice(0,(4-b.length%4)%4); return JSON.parse(decodeURIComponent(atob(p))); }catch(e){ return null; } };
@@ -104,6 +143,57 @@ const buildShareLink = (mod,result)=>{ const enc=encShare({v:result.verdict,s:re
 // ─── UI ATOMS ─────────────────────────────────────────────────
 const Lbl = ({children,color,mb=10})=> <div style={{fontFamily:MONO,fontSize:11,letterSpacing:4,color:color||MUTED,marginBottom:mb,textTransform:"uppercase"}}>{children}</div>;
 const Crd = ({children,accent,hi,style={}})=> <div style={{background:hi?`${accent}15`:CARD,border:`1px solid ${hi?`${accent}30`:BORDER}`,borderRadius:16,padding:"18px",...style}}>{children}</div>;
+
+// ─── MODAL SUIVI ─────────────────────────────────────────────
+function FollowupModal({ entry, total, current, onAnswer, onLater }) {
+  const vc = VC[entry.result?.verdict]||entry.mod?.color||"#F0F0F6";
+  const delai = delaiSuivi(entry.form?.urgence||"moyenne");
+  const age = Math.floor((Date.now()-new Date(entry.date).getTime())/(1000*3600*24));
+  return (
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.93)",zIndex:300,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+      <div style={{maxWidth:440,width:"100%",background:"#0D0D0F",border:`1px solid ${BORDER}`,borderRadius:20,padding:"28px 24px"}}>
+        {/* Barre progression */}
+        <div style={{display:"flex",gap:4,marginBottom:20}}>
+          {Array.from({length:total},(_,i)=>(
+            <div key={i} style={{flex:1,height:3,borderRadius:2,background:i<current?"#30D158":i===current?TEXT:CARD2,transition:"background .3s"}}/>
+          ))}
+        </div>
+        <div style={{fontFamily:MONO,fontSize:10,letterSpacing:4,color:MUTED,marginBottom:6}}>SUIVI {delai} JOURS</div>
+        <div style={{fontFamily:SANS,fontSize:17,fontWeight:700,color:TEXT,marginBottom:20,lineHeight:1.3}}>
+          Tu avais pris une décision.<br/>Tu l'as mise en action ?
+        </div>
+        {/* Module + date */}
+        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
+          <div style={{width:34,height:34,borderRadius:9,background:`${entry.mod?.color}20`,border:`1px solid ${entry.mod?.color}35`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16}}>{entry.mod?.icon}</div>
+          <div style={{fontFamily:MONO,fontSize:10,letterSpacing:2,color:entry.mod?.color}}>{entry.mod?.label}</div>
+          <div style={{fontFamily:MONO,fontSize:9,color:"#333",marginLeft:"auto"}}>{age} jours plus tôt</div>
+        </div>
+        {/* Situation */}
+        <div style={{background:CARD2,border:`1px solid ${BORDER}`,borderRadius:12,padding:"12px 14px",marginBottom:10}}>
+          <div style={{fontFamily:MONO,fontSize:9,letterSpacing:3,color:MUTED,marginBottom:6}}>LA SITUATION</div>
+          <div style={{fontFamily:SANS,fontSize:13,color:TEXT,lineHeight:1.5}}>{entry.form?.situation}</div>
+        </div>
+        {/* Verdict + Action */}
+        <div style={{background:`${vc}10`,border:`1px solid ${vc}25`,borderRadius:12,padding:"12px 14px",marginBottom:20}}>
+          <div style={{display:"flex",alignItems:"baseline",gap:10,marginBottom:8}}>
+            <div style={{fontFamily:MONO,fontSize:9,letterSpacing:3,color:MUTED}}>VERDICT</div>
+            <div style={{fontFamily:SANS,fontSize:22,fontWeight:800,color:vc,letterSpacing:-1}}>{entry.result?.verdict}</div>
+          </div>
+          <div style={{height:1,background:`${vc}30`,marginBottom:8}}/>
+          <div style={{fontFamily:MONO,fontSize:9,letterSpacing:3,color:MUTED,marginBottom:5}}>ACTION RECOMMANDÉE</div>
+          <div style={{fontFamily:SANS,fontSize:12,color:TEXT,fontStyle:"italic",lineHeight:1.5}}>« {entry.result?.action} »</div>
+        </div>
+        {/* Boutons réponse */}
+        <div style={{fontFamily:SANS,fontSize:15,fontWeight:600,color:TEXT,textAlign:"center",marginBottom:16}}>Tu l'as fait ?</div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
+          <button onClick={()=>onAnswer("oui")} style={{padding:"16px 0",background:"#30D15818",border:"2px solid #30D158",borderRadius:14,color:"#30D158",fontFamily:MONO,fontSize:14,fontWeight:900,cursor:"pointer",letterSpacing:2}}>✓ OUI</button>
+          <button onClick={()=>onAnswer("non")} style={{padding:"16px 0",background:"#FF453A18",border:"2px solid #FF453A",borderRadius:14,color:"#FF453A",fontFamily:MONO,fontSize:14,fontWeight:900,cursor:"pointer",letterSpacing:2}}>✗ NON</button>
+        </div>
+        <button onClick={onLater} style={{background:"none",border:"none",color:"#333",fontFamily:MONO,fontSize:9,cursor:"pointer",display:"block",width:"100%",textAlign:"center",letterSpacing:2}}>Plus tard</button>
+      </div>
+    </div>
+  );
+}
 
 // ─── ÉCRAN PARTAGÉ (destinataire) ────────────────────────────
 function SharedView({ data }) {
@@ -504,8 +594,16 @@ function HistoryScreen({ history }) {
                 <div style={{fontFamily:SANS,fontSize:11,color:MUTED,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:220}}>{h.form?.situation}</div>
               </div>
               <div style={{textAlign:"right",flexShrink:0}}>
-                <div style={{fontFamily:MONO,fontSize:10,color:"#666"}}>{h.mod?.label}</div>
-                <div style={{fontFamily:MONO,fontSize:10,color:"#444",marginTop:2}}>{new Date(h.date).toLocaleDateString("fr-FR")}</div>
+                <div style={{fontFamily:MONO,fontSize:10,color:"#666",marginBottom:2}}>{h.mod?.label}</div>
+                {(()=>{
+                  const suivis=getSuivis();
+                  const age=(Date.now()-new Date(h.date).getTime())/(1000*3600*24);
+                  const delai=delaiSuivi(h.form?.urgence||"moyenne");
+                  if(suivis[h.id]==="oui") return <div style={{fontFamily:MONO,fontSize:9,color:"#30D158"}}>✓ FAIT</div>;
+                  if(suivis[h.id]==="non") return <div style={{fontFamily:MONO,fontSize:9,color:"#FF453A"}}>✗ PAS FAIT</div>;
+                  if(age>=delai) return <div style={{fontFamily:MONO,fontSize:9,color:"#FFD60A"}}>⟳ SUIVI</div>;
+                  return <div style={{fontFamily:MONO,fontSize:9,color:"#333"}}>{Math.max(0,Math.round(delai-age))}j</div>;
+                })()}
               </div>
             </button>
           ))}
@@ -520,16 +618,22 @@ function ProfileScreen({ history, unlocked, onPaywall }) {
   const total=history.length;
   const byMod={};
   ALL_MODULES.forEach(m=>byMod[m.id]=0);
-  let pos=0,neg=0,neu=0;
+  let pos=0,neg=0;
   const posV=["RESTE","INVESTIS","LANCE","PUBLIE","ACCEPTE","GO","ACCEPTABLE","SAIN"];
   const negV=["QUITTE","REFUSE","STOP","DANGER","MANIPULATION DÉTECTÉE"];
-  history.forEach(h=>{ if(byMod[h.mod?.id]!==undefined)byMod[h.mod.id]++; const v=h.result?.verdict||""; if(posV.some(p=>v.includes(p)))pos++; else if(negV.some(n=>v.includes(n)))neg++; else neu++; });
+  history.forEach(h=>{ if(byMod[h.mod?.id]!==undefined)byMod[h.mod.id]++; const v=h.result?.verdict||""; if(posV.some(p=>v.includes(p)))pos++; else if(negV.some(n=>v.includes(n)))neg++; });
   const fav=Object.entries(byMod).sort((a,b)=>b[1]-a[1])[0];
   const favMod=ALL_MODULES.find(m=>m.id===fav?.[0]);
   const favCount=fav?.[1]||0;
+  const score=calcScore(history);
+  const streak=calcStreak(history);
+  const BADGES=[{icon:"🔥",n:"1 sem.",ok:streak>=1},{icon:"⚡",n:"4 sem.",ok:streak>=4},{icon:"💎",n:"8 sem.",ok:streak>=8},{icon:"👑",n:"12 sem.",ok:streak>=12}];
+
   return(
     <div>
       <Lbl mb={18}>— Profil</Lbl>
+
+      {/* Stats principales */}
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:9,marginBottom:9}}>
         {[{l:"DÉCISIONS",v:total,c:TEXT},{l:"POSITIVES",v:pos,c:"#30D158"},{l:"NÉGATIVES",v:neg,c:"#FF453A"}].map((s,i)=>(
           <Crd key={i} style={{textAlign:"center",padding:"16px 10px"}}>
@@ -538,6 +642,39 @@ function ProfileScreen({ history, unlocked, onPaywall }) {
           </Crd>
         ))}
       </div>
+
+      {/* Score de lucidité + Streak côte à côte */}
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:9,marginBottom:9}}>
+        {/* Score */}
+        <div style={{background:`${score.color}10`,border:`1px solid ${score.color}25`,borderRadius:16,padding:"16px",textAlign:"center"}}>
+          <Lbl color={score.color} mb={10}>Lucidité</Lbl>
+          <svg width={80} height={80} viewBox="0 0 80 80" style={{display:"block",margin:"0 auto 8px"}}>
+            <circle cx={40} cy={40} r={32} fill="none" stroke={CARD2} strokeWidth={6}/>
+            <circle cx={40} cy={40} r={32} fill="none" stroke={score.color} strokeWidth={6}
+              strokeDasharray={`${2*Math.PI*32*score.score/100} ${2*Math.PI*32*(1-score.score/100)}`}
+              strokeLinecap="round" strokeDashoffset={2*Math.PI*32*0.25}/>
+            <text x={40} y={45} textAnchor="middle" fill={score.color} fontSize={18} fontWeight={800} fontFamily="sans-serif">{score.score}</text>
+          </svg>
+          <div style={{fontFamily:MONO,fontSize:10,fontWeight:700,color:score.color,letterSpacing:2}}>{score.niveau}</div>
+          <div style={{fontFamily:SANS,fontSize:10,color:MUTED,marginTop:4}}>{score.total>0?`${score.oui}/${score.total} décisions suivies`:"Réponds aux suivis"}</div>
+        </div>
+
+        {/* Streak */}
+        <div style={{background:"#FFD60A0A",border:"1px solid #FFD60A20",borderRadius:16,padding:"16px",textAlign:"center"}}>
+          <Lbl color="#FFD60A" mb={8}>Streak</Lbl>
+          <div style={{fontSize:32,marginBottom:4}}>🔥</div>
+          <div style={{fontFamily:MONO,fontSize:32,fontWeight:900,color:"#FFD60A",lineHeight:1,marginBottom:4}}>{streak}</div>
+          <div style={{fontFamily:MONO,fontSize:9,color:"#997700",letterSpacing:2,marginBottom:10}}>SEMAINES</div>
+          {/* Badges mini */}
+          <div style={{display:"flex",gap:4,justifyContent:"center"}}>
+            {BADGES.map((b,i)=>(
+              <div key={i} style={{fontSize:14,opacity:b.ok?1:0.2}} title={b.n}>{b.icon}</div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Module favori */}
       {favMod&&favCount>0&&(
         <Crd style={{marginBottom:9}}>
           <Lbl>Module préféré</Lbl>
@@ -550,6 +687,8 @@ function ProfileScreen({ history, unlocked, onPaywall }) {
           </div>
         </Crd>
       )}
+
+      {/* Répartition */}
       <Crd style={{marginBottom:9}}>
         <Lbl>Répartition</Lbl>
         {BASE_MODULES.map(m=>{ const c=byMod[m.id]||0; const pct=total>0?Math.round((c/total)*100):0; return(
@@ -564,6 +703,8 @@ function ProfileScreen({ history, unlocked, onPaywall }) {
           </div>
         );})}
       </Crd>
+
+      {/* Statut Club */}
       <div style={{background:`linear-gradient(135deg,${CARD2},${CARD})`,border:`1px solid ${unlocked?"rgba(48,209,88,0.2)":BORDER}`,borderRadius:16,padding:"18px",textAlign:"center"}}>
         {unlocked?(
           <>
@@ -595,13 +736,19 @@ export default function App() {
   const [count,setCount]=useState(getCount());
   const [showPaywall,setShowPaywall]=useState(false);
   const [sharedData,setSharedData]=useState(null);
+  const [followupQueue,setFollowupQueue]=useState([]);
+  const [followupIdx,setFollowupIdx]=useState(0);
 
   useEffect(()=>{
     const hash=window.location.hash;
     if(hash.startsWith("#s/")){
       const d=decShare(hash.slice(3));
-      if(d){ setSharedData(d); setScreen("shared"); }
+      if(d){ setSharedData(d); setScreen("shared"); return; }
     }
+    // Vérifier les suivis en attente à l'ouverture
+    const h=getHistory();
+    const queue=getAFollowUp(h);
+    if(queue.length>0){ setFollowupQueue(queue); setFollowupIdx(0); }
   },[]);
 
   useEffect(()=>{ setCount(getCount()); setUnlockedState(getUnlocked()); setHistory(getHistory()); },[screen]);
@@ -626,6 +773,21 @@ export default function App() {
       <style>{`*{box-sizing:border-box}button{transition:background .12s}input,textarea{color:#F0F0F6!important}input::placeholder,textarea::placeholder{color:rgba(255,255,255,0.2)!important}::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:#2A2A2A}`}</style>
 
       {showPaywall&&<Paywall count={count} onClose={()=>setShowPaywall(false)} onUnlock={handleUnlock}/>}
+
+      {/* MODAL SUIVI */}
+      {followupQueue.length>0 && followupIdx<followupQueue.length && (
+        <FollowupModal
+          entry={followupQueue[followupIdx]}
+          total={followupQueue.length}
+          current={followupIdx}
+          onAnswer={(rep)=>{
+            saveSuivi(followupQueue[followupIdx].id, rep);
+            if(followupIdx<followupQueue.length-1) setFollowupIdx(i=>i+1);
+            else setFollowupQueue([]);
+          }}
+          onLater={()=>setFollowupQueue([])}
+        />
+      )}
 
       {/* HEADER */}
       <div style={{borderBottom:`1px solid ${BORDER}`,padding:"0 18px"}}>
