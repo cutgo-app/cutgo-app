@@ -26,9 +26,9 @@ const BASE_MODULES = [
 ];
 
 const EXCLUSIVE_MODES = [
-  { id:"URGENCE",     label:"MODE URGENCE",     icon:"◈", color:"#FF2D55", desc:"Verdict en 10 secondes",       clubOnly:true, systemPrompt:`Tu es CUT/GO™ MODE URGENCE. Ultra-rapide, pas de nuance. Réponds UNIQUEMENT en JSON valide : {"verdict":"GO"|"STOP","pourquoi":["r1"],"action":"string","risque":"string","consequence":"string","signal":"CRITIQUE"|"URGENT"|"STABLE"}` },
-  { id:"HIGH_RISK",   label:"MODE HIGH RISK",   icon:"◬", color:"#FF6B35", desc:"Analyse des risques extrêmes", clubOnly:true, systemPrompt:`Tu es CUT/GO™ MODE HIGH RISK. Focus pire scénario. Réponds UNIQUEMENT en JSON valide : {"verdict":"DANGER"|"RISQUE MODÉRÉ"|"ACCEPTABLE","pourquoi":["r1","r2"],"action":"string","risque":"string","consequence":"string","signal":"DANGER"|"ATTENTION"|"OK"}` },
-  { id:"MANIPULATION",label:"MODE MANIPULATION",icon:"◉", color:"#BF5AF2", desc:"Détecte si on te manipule",    clubOnly:true, systemPrompt:`Tu es CUT/GO™ MODE MANIPULATION. Détecte gaslighting, love bombing, manipulation émotionnelle. Réponds UNIQUEMENT en JSON valide : {"verdict":"MANIPULATION DÉTECTÉE"|"SUSPECT"|"SAIN","pourquoi":["r1","r2"],"action":"string","risque":"string","consequence":"string","signal":"DANGER"|"SUSPECT"|"SAIN"}` },
+  { id:"URGENCE",     label:"MODE URGENCE",     icon:"◈", color:"#FF9500", desc:"Verdict en 10 secondes",       clubOnly:true, systemPrompt:`Tu es CUT/GO™ MODE URGENCE. Ultra-rapide, pas de nuance. Réponds UNIQUEMENT en JSON valide : {"verdict":"GO"|"STOP","pourquoi":["r1"],"action":"string","risque":"string","consequence":"string","signal":"CRITIQUE"|"URGENT"|"STABLE"}` },
+  { id:"HIGH_RISK",   label:"MODE HIGH RISK",   icon:"◬", color:"#32ADE6", desc:"Analyse des risques extrêmes", clubOnly:true, systemPrompt:`Tu es CUT/GO™ MODE HIGH RISK. Focus pire scénario. Réponds UNIQUEMENT en JSON valide : {"verdict":"DANGER"|"RISQUE MODÉRÉ"|"ACCEPTABLE","pourquoi":["r1","r2"],"action":"string","risque":"string","consequence":"string","signal":"DANGER"|"ATTENTION"|"OK"}` },
+  { id:"MANIPULATION",label:"MODE MANIPULATION",icon:"◉", color:"#FF2D9C", desc:"Détecte si on te manipule",    clubOnly:true, systemPrompt:`Tu es CUT/GO™ MODE MANIPULATION. Détecte gaslighting, love bombing, manipulation émotionnelle. Réponds UNIQUEMENT en JSON valide : {"verdict":"MANIPULATION DÉTECTÉE"|"SUSPECT"|"SAIN","pourquoi":["r1","r2"],"action":"string","risque":"string","consequence":"string","signal":"DANGER"|"SUSPECT"|"SAIN"}` },
 ];
 
 const ALL_MODULES = [...BASE_MODULES, ...EXCLUSIVE_MODES];
@@ -235,8 +235,19 @@ function SharedView({ data }) {
 
 // ─── PAYWALL ──────────────────────────────────────────────────
 function Paywall({ count, onClose, onUnlock }) {
-  const [code,setCode]=useState(""); const [err,setErr]=useState("");
-  const check=()=>{ const c=code.trim().toUpperCase(); if(c.startsWith(VALID_CODE_PREFIX)&&c.length>=10){ setUnlocked(); onUnlock(); }else{ setErr("Code invalide. Vérifie ton email Gumroad."); } };
+  const [code,setCode]=useState(""); const [err,setErr]=useState(""); const [checking,setChecking]=useState(false);
+  const check=async()=>{
+    const c=code.trim();
+    if(!c.startsWith(VALID_CODE_PREFIX)){ setErr("Code invalide. Vérifie ton email Gumroad."); return; }
+    setErr(""); setChecking(true);
+    try{
+      const r=await fetch("/api/verify-license",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({licenseKey:c})});
+      const data=await r.json();
+      if(data.valid){ setUnlocked(); onUnlock(); }
+      else{ setErr(data.reason==="subscription_inactive"?"Abonnement inactif ou annulé.":"Code invalide. Vérifie ton email Gumroad."); }
+    }catch(e){ setErr("Erreur de vérification. Réessaie."); }
+    finally{ setChecking(false); }
+  };
   return (
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.93)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
       <div style={{maxWidth:440,width:"100%",background:"#0D0D0F",border:`1px solid ${BORDER}`,borderRadius:20,padding:"32px 24px"}}>
@@ -253,8 +264,8 @@ function Paywall({ count, onClose, onUnlock }) {
         </a>
         <Lbl mb={8}>J'ai déjà un code</Lbl>
         <div style={{display:"flex",gap:8,marginBottom:err?8:0}}>
-          <input value={code} onChange={e=>setCode(e.target.value)} placeholder="CUTGO-XXXXXX" onKeyDown={e=>e.key==="Enter"&&check()} style={{flex:1,background:CARD2,border:`1px solid ${BORDER}`,borderRadius:10,color:TEXT,padding:"11px 14px",fontFamily:MONO,fontSize:12,outline:"none"}}/>
-          <button onClick={check} style={{background:CARD2,border:`1px solid ${BORDER}`,borderRadius:10,color:TEXT,padding:"0 18px",fontFamily:MONO,fontSize:10,fontWeight:700,cursor:"pointer",letterSpacing:1}}>OK</button>
+          <input disabled={checking} value={code} onChange={e=>setCode(e.target.value)} placeholder="CUTGO-XXXXXX" onKeyDown={e=>e.key==="Enter"&&check()} style={{flex:1,background:CARD2,border:`1px solid ${BORDER}`,borderRadius:10,color:TEXT,padding:"11px 14px",fontFamily:MONO,fontSize:12,outline:"none",opacity:checking?0.5:1}}/>
+          <button onClick={check} disabled={checking} style={{background:CARD2,border:`1px solid ${BORDER}`,borderRadius:10,color:TEXT,padding:"0 18px",fontFamily:MONO,fontSize:10,fontWeight:700,cursor:checking?"default":"pointer",letterSpacing:1,opacity:checking?0.6:1}}>{checking?"...":"OK"}</button>
         </div>
         {err&&<div style={{fontFamily:MONO,color:"#FF453A",fontSize:10,marginBottom:8,letterSpacing:1}}>{err}</div>}
         <button onClick={onClose} style={{background:"none",border:"none",color:"#333",fontFamily:MONO,fontSize:11,cursor:"pointer",marginTop:14,display:"block",width:"100%",textAlign:"center",letterSpacing:2}}>Retour</button>
@@ -491,14 +502,14 @@ function HomeScreen({ onSelect, unlocked, onPaywall, count }) {
       <Lbl mb={12}>— Modes exclusifs Club</Lbl>
       <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16}}>
         {EXCLUSIVE_MODES.map(m=>(
-          <button key={m.id} onClick={()=>{ if(!unlocked){onPaywall();}else{onSelect(m);} }} style={{background:CARD,border:`1px solid ${BORDER}`,borderRadius:16,padding:"16px",cursor:"pointer",textAlign:"left",fontFamily:SANS,display:"flex",alignItems:"center",gap:14,opacity:unlocked?1:0.45}}
-            onMouseEnter={e=>e.currentTarget.style.background=CARD2} onMouseLeave={e=>e.currentTarget.style.background=CARD}>
-            <div style={{width:44,height:44,borderRadius:12,background:unlocked?`${m.color}18`:CARD2,display:"flex",alignItems:"center",justifyContent:"center",fontSize:unlocked?18:16,flexShrink:0}}>{unlocked?m.icon:"🔒"}</div>
+          <button key={m.id} onClick={()=>{ if(!unlocked){onPaywall();}else{onSelect(m);} }} style={{background:unlocked?`${m.color}08`:CARD,border:`1px solid ${unlocked?`${m.color}35`:BORDER}`,borderRadius:16,padding:"16px",cursor:"pointer",textAlign:"left",fontFamily:SANS,display:"flex",alignItems:"center",gap:14,opacity:unlocked?1:0.5,filter:unlocked?"none":"grayscale(0.6)",transition:"opacity .2s, filter .2s"}}
+            onMouseEnter={e=>{ if(unlocked){ e.currentTarget.style.background=`${m.color}14`; e.currentTarget.style.borderColor=`${m.color}55`; } }} onMouseLeave={e=>{ if(unlocked){ e.currentTarget.style.background=`${m.color}08`; e.currentTarget.style.borderColor=`${m.color}35`; } }}>
+            <div style={{width:44,height:44,borderRadius:12,background:unlocked?`${m.color}15`:"rgba(255,255,255,0.06)",border:`2px solid ${unlocked?m.color:MUTED}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0,color:unlocked?m.color:MUTED}}>{unlocked?m.icon:"🔒"}</div>
             <div style={{flex:1}}>
-              <div style={{fontFamily:MONO,fontSize:12,fontWeight:700,letterSpacing:2,color:unlocked?TEXT:MUTED,marginBottom:3}}>{m.label}</div>
-              <div style={{fontFamily:SANS,fontSize:11,color:"#444"}}>{m.desc}</div>
+              <div style={{fontFamily:MONO,fontSize:12,fontWeight:700,letterSpacing:2,color:unlocked?m.color:MUTED,marginBottom:3}}>{m.label}</div>
+              <div style={{fontFamily:SANS,fontSize:11,color:MUTED}}>{unlocked?m.desc:"Réservé au Club"}</div>
             </div>
-            {!unlocked&&<div style={{fontFamily:MONO,fontSize:10,color:"#555",letterSpacing:2,background:CARD2,padding:"5px 10px",borderRadius:6}}>CLUB</div>}
+            {!unlocked&&<div style={{fontFamily:MONO,fontSize:10,color:MUTED,letterSpacing:2,background:"rgba(255,255,255,0.06)",border:`1px solid ${BORDER}`,padding:"5px 10px",borderRadius:6}}>9€/MO</div>}
           </button>
         ))}
       </div>
@@ -522,7 +533,7 @@ function HistoryScreen({ history }) {
       <div>
         <button onClick={()=>setSelected(null)} style={{background:"none",border:"none",color:selected.mod?.color||MUTED,fontFamily:MONO,fontSize:11,letterSpacing:2,cursor:"pointer",padding:0,marginBottom:18}}>← HISTORIQUE</button>
         <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:18,paddingBottom:14,borderBottom:`1px solid ${BORDER}`}}>
-          <div style={{width:40,height:40,borderRadius:10,background:`${selected.mod?.color||"#444"}18`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>{selected.mod?.icon||"◎"}</div>
+          <div style={{width:40,height:40,borderRadius:10,background:`${selected.mod?.color||"#444"}18`,border:`2px solid ${selected.mod?.color||"#444"}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,color:selected.mod?.color||"#444"}}>{selected.mod?.icon||"◎"}</div>
           <div>
             <div style={{fontFamily:MONO,fontSize:11,fontWeight:700,letterSpacing:2,color:selected.mod?.color||TEXT}}>{selected.mod?.label}</div>
             <div style={{fontFamily:MONO,fontSize:11,color:MUTED}}>{new Date(selected.date).toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}</div>
@@ -582,7 +593,7 @@ function HistoryScreen({ history }) {
           {history.map((h,i)=>(
             <button key={h.id||i} onClick={()=>setSelected(h)} style={{background:CARD,border:`1px solid ${BORDER}`,borderRadius:16,padding:"14px 16px",cursor:"pointer",textAlign:"left",fontFamily:SANS,display:"flex",gap:12,alignItems:"center"}}
               onMouseEnter={e=>e.currentTarget.style.background=CARD2} onMouseLeave={e=>e.currentTarget.style.background=CARD}>
-              <div style={{width:40,height:40,borderRadius:10,background:`${h.mod?.color||"#444"}18`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>{h.mod?.icon||"◎"}</div>
+              <div style={{width:40,height:40,borderRadius:10,background:`${h.mod?.color||"#444"}18`,border:`2px solid ${h.mod?.color||"#444"}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0,color:h.mod?.color||"#444"}}>{h.mod?.icon||"◎"}</div>
               <div style={{flex:1,minWidth:0}}>
                 <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:4}}>
                   <div style={{fontFamily:MONO,fontSize:12,fontWeight:700,color:VC[h.result?.verdict]||h.mod?.color||TEXT}}>{h.result?.verdict}</div>
