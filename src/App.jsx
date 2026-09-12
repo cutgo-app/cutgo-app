@@ -238,7 +238,7 @@ function Paywall({ count, onClose, onUnlock }) {
   const [code,setCode]=useState(""); const [err,setErr]=useState(""); const [checking,setChecking]=useState(false);
   const check=async()=>{
     const c=code.trim();
-    if(!c.startsWith(VALID_CODE_PREFIX)){ setErr("Code invalide. Vérifie ton email Gumroad."); return; }
+    if(!c){ setErr("Entre ta license key."); return; }
     setErr(""); setChecking(true);
     try{
       const r=await fetch("/api/verify-license",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({licenseKey:c})});
