@@ -256,7 +256,7 @@ function Paywall({ count, onClose, onUnlock }) {
         <div style={{fontFamily:SANS,fontSize:13,color:MUTED,marginBottom:22,lineHeight:1.6}}>7 jours offerts. Ensuite 9€/mois.</div>
         <div style={{background:CARD,border:`1px solid ${BORDER}`,borderRadius:14,padding:"14px 16px",marginBottom:18}}>
           {["Décisions illimitées","Historique complet","3 modes exclusifs : URGENCE, HIGH RISK, MANIPULATION","Formats BRUTAL / RAPIDE / STRATÉGIQUE","6 scénarios par module"].map((f,i)=>(
-            <div key={i} style={{fontFamily:SANS,fontSize:12,color:MUTED,marginBottom:5,display:"flex",gap:10}}><span style={{color:"#30D158"}}>✓</span>{f}</div>
+            <div key={i} style={{fontFamily:SANS,fontSize:14,color:MUTED,marginBottom:5,display:"flex",gap:10,lineHeight:1.4}}><span style={{color:"#30D158"}}>✓</span>{f}</div>
           ))}
         </div>
         <a href={GUMROAD_URL} target="_blank" rel="noopener noreferrer" style={{textDecoration:"none",display:"block",marginBottom:14}}>
@@ -355,7 +355,7 @@ function ResultScreen({ mod, result, onHome, onNew, unlocked, onPaywall }) {
                 {displayResult.pourquoi.map((r,i)=>(
                   <div key={i} style={{display:"flex",gap:12,alignItems:"flex-start"}}>
                     <div style={{fontFamily:MONO,fontSize:11,color:mod.color,minWidth:20,paddingTop:3,letterSpacing:1}}>0{i+1}</div>
-                    <div style={{fontFamily:SANS,fontSize:13,color:TEXT,lineHeight:1.55,opacity:.85}}>{r}</div>
+                    <div style={{fontFamily:SANS,fontSize:15,color:TEXT,lineHeight:1.55,opacity:.9}}>{r}</div>
                   </div>
                 ))}
               </div>
@@ -366,7 +366,7 @@ function ResultScreen({ mod, result, onHome, onNew, unlocked, onPaywall }) {
             </div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:9}}>
               {[{l:"Risque si inaction",v:displayResult.risque},{l:"Si tu te trompes",v:displayResult.consequence}].map((s,i)=>(
-                <Crd key={i}><Lbl>{s.l}</Lbl><div style={{fontFamily:SANS,fontSize:11,color:MUTED,lineHeight:1.5}}>{s.v}</div></Crd>
+                <Crd key={i}><Lbl>{s.l}</Lbl><div style={{fontFamily:SANS,fontSize:13,color:MUTED,lineHeight:1.5}}>{s.v}</div></Crd>
               ))}
             </div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
@@ -492,8 +492,8 @@ function HomeScreen({ onSelect, unlocked, onPaywall, count }) {
             onMouseEnter={e=>e.currentTarget.style.background=CARD2} onMouseLeave={e=>e.currentTarget.style.background=CARD}>
             <div style={{width:44,height:44,borderRadius:12,background:`${m.color}15`,border:`2px solid ${m.color}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0,color:m.color}}>{m.icon}</div>
             <div style={{flex:1}}>
-              <div style={{fontFamily:MONO,fontSize:12,fontWeight:700,letterSpacing:2,color:TEXT,marginBottom:3}}>{m.label}</div>
-              <div style={{fontFamily:SANS,fontSize:12,color:MUTED}}>{m.desc}</div>
+              <div style={{fontFamily:SANS,fontSize:16,fontWeight:700,letterSpacing:-0.1,color:TEXT,marginBottom:3,textTransform:"capitalize"}}>{m.label.toLowerCase()}</div>
+              <div style={{fontFamily:SANS,fontSize:13,color:MUTED,lineHeight:1.35}}>{m.desc}</div>
             </div>
             <div style={{fontFamily:MONO,fontSize:11,color:"#444",letterSpacing:1}}>{SCENARIOS[m.id]?.length} scén.</div>
           </button>
@@ -506,8 +506,8 @@ function HomeScreen({ onSelect, unlocked, onPaywall, count }) {
             onMouseEnter={e=>{ if(unlocked){ e.currentTarget.style.background=`${m.color}14`; e.currentTarget.style.borderColor=`${m.color}55`; } }} onMouseLeave={e=>{ if(unlocked){ e.currentTarget.style.background=`${m.color}08`; e.currentTarget.style.borderColor=`${m.color}35`; } }}>
             <div style={{width:44,height:44,borderRadius:12,background:unlocked?`${m.color}15`:"rgba(255,255,255,0.06)",border:`2px solid ${unlocked?m.color:MUTED}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0,color:unlocked?m.color:MUTED}}>{unlocked?m.icon:"🔒"}</div>
             <div style={{flex:1}}>
-              <div style={{fontFamily:MONO,fontSize:12,fontWeight:700,letterSpacing:2,color:unlocked?m.color:MUTED,marginBottom:3}}>{m.label}</div>
-              <div style={{fontFamily:SANS,fontSize:11,color:MUTED}}>{unlocked?m.desc:"Réservé au Club"}</div>
+              <div style={{fontFamily:SANS,fontSize:16,fontWeight:700,letterSpacing:-0.1,color:unlocked?m.color:MUTED,marginBottom:3,textTransform:"capitalize"}}>{m.label.toLowerCase()}</div>
+              <div style={{fontFamily:SANS,fontSize:13,color:MUTED,lineHeight:1.35}}>{unlocked?m.desc:"Réservé au Club"}</div>
             </div>
             {!unlocked&&<div style={{fontFamily:MONO,fontSize:10,color:MUTED,letterSpacing:2,background:"rgba(255,255,255,0.06)",border:`1px solid ${BORDER}`,padding:"5px 10px",borderRadius:6}}>9€/MO</div>}
           </button>
